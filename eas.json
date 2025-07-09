@@ -1,7 +1,7 @@
-// eas.json
 {
   "cli": {
-    "version": ">= 3.0.0"
+    "version": ">= 16.13.4",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -12,12 +12,7 @@
       "distribution": "internal"
     },
     "production": {
-      "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "simulator": true
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
