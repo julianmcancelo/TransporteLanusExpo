@@ -45,6 +45,12 @@
         "projectId": "12fd22e9-6d8a-4f5c-afc7-bfa9588f8a3f"
       }
     },
-    "owner": "jotacancelo"
+    "owner": "jotacancelo",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/12fd22e9-6d8a-4f5c-afc7-bfa9588f8a3f"
+    }
   }
 }
