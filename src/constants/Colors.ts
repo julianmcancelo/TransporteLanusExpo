@@ -62,3 +62,24 @@ export const Colors = {
     info: AppColors.info,
   },
 };
+
+
+
+// src/constants/colors.js
+
+export const PRIMARY_COLOR = '#007bff';
+export const PRIMARY_DARK_COLOR = '#0056b3';
+export const ACCENT_COLOR = '#ffc107';
+export const TEXT_DARK_COLOR = '#212529';
+export const TEXT_LIGHT_COLOR = '#f8f9fa';
+export const GRAY_MEDIUM_COLOR = '#6c757d';
+export const GRAY_LIGHT_COLOR = '#e9ecef';
+export const BACKGROUND_COLOR = '#f0f2f5';
+export const CARD_BACKGROUND_COLOR = '#ffffff';
+export const BORDER_COLOR_LIGHT = '#ddd';
+export const BORDER_COLOR_DARK = '#ccc';
+
+export const SUCCESS_COLOR = '#28a745';
+export const ERROR_COLOR = '#dc354f';
+export const WARNING_COLOR = ACCENT_COLOR;
+export const INFO_COLOR = PRIMARY_COLOR;

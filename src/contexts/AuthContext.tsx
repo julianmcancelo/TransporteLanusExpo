@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     router.replace('/(admin)/dashboard');
                     break;
                 case 'inspector':
-                    router.replace('/(inspector)/nueva-inspeccion');
+                    router.replace('/(inspector)/inspecciones');
                     break;
             }
         } else if (!userSession && !inAuthGroup) {
