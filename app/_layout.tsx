@@ -26,10 +26,8 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(contribuyente)" /> 
-        <Stack.Screen name="(admin)" />
-        <Stack.Screen name="(inspector)" />
+        {/* ✅ CORRECTO: No se declaran los grupos de rutas aquí.
+             Expo Router los maneja automáticamente. */}
       </Stack>
     </AuthProvider>
   );

@@ -1,7 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as ScreenOrientation from 'expo-screen-orientation';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import SignatureScreen from 'react-native-signature-canvas';
@@ -18,10 +17,10 @@ interface HabilitacionDetalle {
 }
 
 // --- Iconos ---
-const InfoIcon = () => <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Circle cx="12" cy="12" r="10"/><Line x1="12" y1="16" x2="12" y2="12"/><Line x1="12" y1="8" x2="12.01" y2="8"/></Svg>;
-const UserIcon = () => <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><Circle cx="12" cy="7" r="4"/></Svg>;
-const CalendarIcon = () => <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><Line x1="16" y1="2" x2="16" y2="6"/><Line x1="8" y1="2" x2="8" y2="6"/><Line x1="3" y1="10" x2="21" y2="10"/></Svg>;
-const CheckIcon = () => <Svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><Path d="M20 6L9 17l-5-5"/></Svg>;
+const InfoIcon = () => <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Circle cx="12" cy="12" r="10" /><Line x1="12" y1="16" x2="12" y2="12" /><Line x1="12" y1="8" x2="12.01" y2="8" /></Svg>;
+const UserIcon = () => <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><Circle cx="12" cy="7" r="4" /></Svg>;
+const CalendarIcon = () => <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><Line x1="16" y1="2" x2="16" y2="6" /><Line x1="8" y1="2" x2="8" y2="6" /><Line x1="3" y1="10" x2="21" y2="10" /></Svg>;
+const CheckIcon = () => <Svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><Path d="M20 6L9 17l-5-5" /></Svg>;
 const CameraIcon = () => <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></Path><Circle cx="12" cy="13" r="4"></Circle></Svg>;
 const SignatureIcon = () => <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></Path></Svg>;
 
@@ -33,16 +32,61 @@ const SignatureModal = ({ visible, onSave, onClose, title }: { visible: boolean,
     const styles = getStyles();
 
     const signatureWebStyle = `
-        body, html { width: 100%; height: 100%; margin: 0; padding: 0; display: flex; flex-direction: column; background-color: #FFF; }
-        .m-signature-pad { flex: 1; display: flex; flex-direction: column; box-shadow: none; border: none; }
-        .m-signature-pad--body { flex: 1; border: 2px dashed #E2E8F0; border-radius: 12px; margin: 10px; }
-        .m-signature-pad--footer { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
-        .button { background-color: #3B82F6; color: #FFF; font-size: 16px; padding: 12px 24px; border-radius: 8px; border: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; font-weight: 600; }
-        .button.clear { background-color: #64748B; }
+        body, html { 
+            width: 100%; 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden;
+        }
+        .m-signature-pad { 
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; 
+            flex-direction: column;
+            background-color: #FFF;
+        }
+        .m-signature-pad--body { 
+            flex-grow: 1;
+            border: 2px dashed #CBD5E1; 
+            border-radius: 12px; 
+            margin: 10px; 
+        }
+        .m-signature-pad--footer { 
+            height: 80px;
+            flex-shrink: 0;
+            display: flex; 
+            align-items: center; 
+            justify-content: space-evenly;
+            padding: 0 20px;
+            border-top: 1px solid #F1F5F9;
+        }
+        .button { 
+            -webkit-appearance: none;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            font-weight: 600; 
+            font-size: 16px; 
+            color: #FFF; 
+            padding: 14px 28px; 
+            border-radius: 12px; 
+            border: none; 
+            cursor: pointer;
+        }
+        .button.clear { 
+            background-color: #64748B; 
+        }
+        .button.save {
+            background-color: #3B82F6;
+        }
+        canvas {
+            position: absolute;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+        }
     `;
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" supportedOrientations={['landscape']}>
+        <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" supportedOrientations={['portrait']}>
             <SafeAreaView style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>{title}</Text>
@@ -84,7 +128,6 @@ export default function DetalleObleaScreen() {
     const [firmaReceptor, setFirmaReceptor] = useState<string | null>(null);
     const [firmaInspector, setFirmaInspector] = useState<string | null>(null);
 
-    // --- Lógica de Datos ---
     const fetchHabilitacionDetalle = useCallback(async () => {
         if (!id) return;
         setIsLoading(true);
@@ -104,7 +147,6 @@ export default function DetalleObleaScreen() {
         fetchHabilitacionDetalle();
     }, [fetchHabilitacionDetalle]);
 
-    // --- Lógica para tomar foto ---
     const handleTomarFoto = async () => {
         const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
         if (permissionResult.granted === false) {
@@ -115,43 +157,32 @@ export default function DetalleObleaScreen() {
         if (!result.canceled) setFoto(result.assets[0]);
     };
 
-    // --- Lógica de Firma ---
-    const openSignatureModal = async (type: 'receptor' | 'inspector') => {
-        try {
-            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT);
-            setCurrentSignatureType(type);
-            setIsSignatureModalVisible(true);
-        } catch (e) {
-            console.error("Failed to lock screen orientation:", e);
-        }
+    // ✅ Lógica de Firma SIN rotación
+    const openSignatureModal = (type: 'receptor' | 'inspector') => {
+        setCurrentSignatureType(type);
+        setIsSignatureModalVisible(true);
     };
 
-    const handleSaveSignature = async (signature: string) => {
+    const handleSaveSignature = (signature: string) => {
         if (currentSignatureType === 'receptor') {
             setFirmaReceptor(signature);
         } else if (currentSignatureType === 'inspector') {
             setFirmaInspector(signature);
         }
-        await closeSignatureModal();
+        closeSignatureModal();
     };
 
-    const closeSignatureModal = async () => {
-        try {
-            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-            setIsSignatureModalVisible(false);
-        } catch (e) {
-            console.error("Failed to lock screen orientation:", e);
-        }
+    const closeSignatureModal = () => {
+        setIsSignatureModalVisible(false);
     };
 
-    // --- Lógica de Envío ---
     const handleConfirmar = async () => {
         if (!foto || !firmaReceptor || !firmaInspector) {
             Alert.alert("Datos Incompletos", "Se requiere la foto de evidencia y ambas firmas para continuar.");
             return;
         }
         setIsSubmitting(true);
-        
+
         setSubmitMessage('Guardando registro...');
         const formData = new FormData();
         formData.append('habilitacion_id', id as string);
@@ -177,7 +208,7 @@ export default function DetalleObleaScreen() {
                 const errorText = await responseRegistro.text();
                 throw new Error(`El servidor no pudo registrar la colocación. ${errorText}`);
             }
-            
+
             setSubmitMessage('Enviando correos...');
             const responseCorreo = await fetch(`${API_BASE_URL}/obleaslista.php?endpoint=enviar-certificado`, {
                 method: 'POST',
@@ -205,7 +236,7 @@ export default function DetalleObleaScreen() {
         <SafeAreaView style={styles.mainContainer}>
             <ScrollView contentContainerStyle={styles.container}>
                 <Text style={styles.headerTitle}>Registrar Colocación</Text>
-                
+
                 <View style={styles.infoCard}>
                     <View style={styles.infoRow}><InfoIcon /><Text style={styles.infoText}>Licencia: {habilitacion?.nro_licencia}</Text></View>
                     <View style={styles.infoRow}><UserIcon /><Text style={styles.infoText}>Titular: {habilitacion?.titular_principal}</Text></View>
@@ -225,8 +256,7 @@ export default function DetalleObleaScreen() {
                 )}
 
                 <Text style={styles.sectionLabel}>2. Firmas de Conformidad</Text>
-                
-                {/* Firma del Receptor */}
+
                 <View style={styles.signatureContainer}>
                     <Text style={styles.signatureLabel}>Firma del Receptor</Text>
                     {firmaReceptor ? (
@@ -244,7 +274,6 @@ export default function DetalleObleaScreen() {
                     )}
                 </View>
 
-                {/* Firma del Inspector */}
                 <View style={styles.signatureContainer}>
                     <Text style={styles.signatureLabel}>Firma del Inspector</Text>
                     {firmaInspector ? (
@@ -262,13 +291,13 @@ export default function DetalleObleaScreen() {
                     )}
                 </View>
 
-                <TouchableOpacity 
-                    style={[styles.submitButton, (isSubmitting || !foto || !firmaReceptor || !firmaInspector) && styles.submitButtonDisabled]} 
+                <TouchableOpacity
+                    style={[styles.submitButton, (isSubmitting || !foto || !firmaReceptor || !firmaInspector) && styles.submitButtonDisabled]}
                     onPress={handleConfirmar}
                     disabled={isSubmitting || !foto || !firmaReceptor || !firmaInspector}
                 >
-                     <LinearGradient colors={(isSubmitting || !foto || !firmaReceptor || !firmaInspector) ? ['#94A3B8', '#94A3B8'] : ['#16A34A', '#15803D']} style={styles.buttonGradient}>
-                        {isSubmitting 
+                    <LinearGradient colors={(isSubmitting || !foto || !firmaReceptor || !firmaInspector) ? ['#94A3B8', '#94A3B8'] : ['#16A34A', '#15803D']} style={styles.buttonGradient}>
+                        {isSubmitting
                             ? <><ActivityIndicator color="#FFF" /><Text style={styles.submitButtonText}>{submitMessage}</Text></>
                             : <Text style={styles.submitButtonText}>Finalizar y Guardar Registro</Text>
                         }
@@ -276,7 +305,7 @@ export default function DetalleObleaScreen() {
                 </TouchableOpacity>
             </ScrollView>
 
-            <SignatureModal 
+            <SignatureModal
                 visible={isSignatureModalVisible}
                 onSave={handleSaveSignature}
                 onClose={closeSignatureModal}
@@ -296,15 +325,15 @@ const getStyles = () => StyleSheet.create({
     infoCard: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: '#E2E8F0' },
     infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     infoText: { fontSize: 16, color: '#334155', marginLeft: 12, fontWeight: '500' },
-    
+
     sectionLabel: { fontSize: 20, fontWeight: 'bold', color: '#1E293B', marginTop: 16, marginBottom: 16, borderBottomColor: '#CBD5E1', borderBottomWidth: 1, paddingBottom: 8 },
-    
+
     photoButton: { flexDirection: 'row', backgroundColor: '#3B82F6', padding: 15, borderRadius: 12, justifyContent: 'center', alignItems: 'center', gap: 10 },
     photoButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
     imagePreviewContainer: { marginTop: 16, alignItems: 'center', position: 'relative' },
     imagePreview: { width: 150, height: 150, borderRadius: 12, borderWidth: 2, borderColor: '#16A34A' },
     imageOverlay: { position: 'absolute', top: 8, right: 8, backgroundColor: 'white', borderRadius: 16, padding: 4 },
-    
+
     signatureContainer: { marginBottom: 24 },
     signatureLabel: { fontSize: 16, fontWeight: '600', color: '#334155', marginBottom: 8 },
     signaturePreviewBox: { alignItems: 'center', padding: 8, backgroundColor: '#F0FDF4', borderRadius: 12, borderWidth: 2, borderColor: '#86EFAC' },
@@ -325,11 +354,12 @@ const getStyles = () => StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 10,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9'
     },
     modalTitle: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#1E293B',
     },

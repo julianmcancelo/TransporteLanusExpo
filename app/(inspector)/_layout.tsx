@@ -1,65 +1,39 @@
 // app/(inspector)/_layout.tsx
 import { useAuth } from '@/contexts/AuthContext';
-import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable } from 'react-native';
+
+// --- Paleta de Colores (se mantiene por si se usa en otros componentes) ---
+const theme = {
+    background: '#FFFFFF',
+    iconColor: '#3B82F6',
+    textColor: '#1E293B',
+};
 
 export default function InspectorLayout() {
-  const { signOut } = useAuth();
-  const router = useRouter();
+    const { signOut } = useAuth();
+    const router = useRouter();
 
-  return (
-    <Stack
-      screenOptions={{
-        headerRight: () => (
-          <Pressable onPress={signOut} style={{ marginRight: 15 }}>
-            <FontAwesome name="sign-out" size={25} color="gray" />
-          </Pressable>
-        ),
-      }}
-    >
-      {/* 1. Pantalla principal, se mantiene igual */}
-      <Stack.Screen
-        name="inspecciones" 
-        options={{ headerShown: false }}
-      />
-
-      {/* 2. Pantallas que son archivos directos en la carpeta (inspector) */}
-      <Stack.Screen
-        name="inspection-form"
-        options={{
-          title: '',
-          headerLeft: () => (
-             <Pressable onPress={() => router.back()} style={{ marginLeft: 15 }}>
-              <FontAwesome name="chevron-left" size={25} color="gray" />
-            </Pressable>
-          )
-        }}
-      />
-      <Stack.Screen
-        name="seleccionar-tramite"
-        options={{
-          title: '',
-          headerLeft: () => (
-             <Pressable onPress={() => router.back()} style={{ marginLeft: 15 }}>
-              <FontAwesome name="chevron-left" size={25} color="gray" />
-            </Pressable>
-          )
-        }}
-      />
-      {/* Agrega aquí otras pantallas que sean archivos, como "nueva-inspeccion.tsx" si existe */}
-      {/* <Stack.Screen name="nueva-inspeccion" options={{ title: '' }} /> */}
-
-
-      {/* 3. Referencia al grupo de rutas 'historial' */}
-      {/* No se configuran detalles aquí, solo se le dice al Stack que existe. */}
-      {/* Su propia cabecera se manejará en 'app/(inspector)/historial/_layout.tsx' */}
-      <Stack.Screen 
-        name="historial" 
-        options={{ headerShown: false }} 
-      />
-
-    </Stack>
-  );
+    return (
+        <Stack
+            // ✅ CORRECCIÓN: Se oculta el header por defecto para todo el grupo de rutas.
+            screenOptions={{
+                headerShown: false,
+            }}
+        >
+            {/* Al tener headerShown: false en screenOptions,
+                no es necesario declararlo en cada pantalla,
+                a menos que se quiera mostrar específicamente en alguna.
+            */}
+            <Stack.Screen name="inspecciones" />
+            <Stack.Screen name="nueva-inspeccion" />
+            <Stack.Screen name="inspeccion-detalle" />
+            <Stack.Screen name="inspection-form" />
+            <Stack.Screen name="seleccionar-tramite" />
+            <Stack.Screen name="verification" />
+            <Stack.Screen name="obleas/index" />
+            <Stack.Screen name="obleas/[id]" />
+            <Stack.Screen name="historial" />
+        </Stack>
+    );
 }

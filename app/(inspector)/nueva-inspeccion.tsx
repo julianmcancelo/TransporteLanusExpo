@@ -1,6 +1,5 @@
 // =========================================================================
-// ARCHIVO: app/(inspector)/nueva-inspeccion.tsx (v2.0 - con Actualización Forzada)
-// Muestra la lista de trámites con "deslizar para refrescar" y previene el caché.
+// ARCHIVO: app/(inspector)/nueva-inspeccion.tsx (v3.0 - Versión Corregida)
 // =========================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -116,7 +115,7 @@ const StatusBadge = ({ estado, themeColors, styles }: { estado: Habilitacion['es
 };
 
 const InspectionCard = ({ item, onPress, themeColors, styles }: { item: Tramite, onPress: (item: Tramite) => void, themeColors: any, styles: any }) => {
-    const turnoInfo = item.turno 
+    const turnoInfo = item.turno
         ? `${new Date(item.turno.fecha + 'T00:00:00').toLocaleDateString('es-AR')} a las ${item.turno.hora.substring(0, 5)} hs`
         : 'Sin turno asignado';
 
@@ -164,18 +163,18 @@ export default function SelectInspectionScreen() {
 
     const [tramites, setTramites] = useState<Tramite[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isRefreshing, setIsRefreshing] = useState(false); // Estado para el pull-to-refresh
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [dataSource, setDataSource] = useState<'cloud' | 'cache' | null>(null);
 
     const fetchTramites = useCallback(async (isRefresh = false) => {
-        if (!isRefresh) {
+        // ✅ SOLO MUESTRA EL LOADER A PANTALLA COMPLETA SI LA LISTA ESTÁ VACÍA
+        if (!isRefresh && tramites.length === 0) {
             setIsLoading(true);
         }
         setError(null);
         setDataSource(null);
         try {
-            // ✅ MODIFICACIÓN: Se añaden cabeceras para evitar el caché
             const response = await fetch(API_TRAMITES_URL, {
                 cache: 'no-cache',
                 headers: {
@@ -184,7 +183,7 @@ export default function SelectInspectionScreen() {
                 },
             });
             if (!response.ok) throw new Error('No se pudo conectar al servidor.');
-            
+
             const result = await response.json();
             if (result.status === 'success') {
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -210,9 +209,9 @@ export default function SelectInspectionScreen() {
             }
         } finally {
             setIsLoading(false);
-            setIsRefreshing(false); // Siempre detener el indicador de refresco
+            setIsRefreshing(false);
         }
-    }, []);
+    }, [tramites]); // ✅ SE AÑADE LA DEPENDENCIA PARA QUE EL HOOK TENGA EL ESTADO ACTUALIZADO
 
     // Carga inicial al enfocar la pantalla
     useFocusEffect(useCallback(() => {
@@ -222,7 +221,7 @@ export default function SelectInspectionScreen() {
     // Función para manejar el gesto de "deslizar para refrescar"
     const onRefresh = useCallback(() => {
         setIsRefreshing(true);
-        fetchTramites(true); // Llama a fetchTramites indicando que es un refresco
+        fetchTramites(true);
     }, [fetchTramites]);
 
     const groupedData = useMemo(() => {
@@ -238,8 +237,9 @@ export default function SelectInspectionScreen() {
     }, [tramites]);
 
     const handleSelectTramite = (item: Tramite) => {
+        // ✅ RUTA DE NAVEGACIÓN CORREGIDA (SIN BARRA AL FINAL)
         router.push({
-            pathname: '/(inspector)/inspecciones',
+        pathname: '/(inspector)/inspeccion-detalle',
             params: { tramite: JSON.stringify(item) }
         });
     };
@@ -248,12 +248,11 @@ export default function SelectInspectionScreen() {
         if (isLoading) return <ActivityIndicator size="large" color={themeColors.primary} style={{ flex: 1 }} />;
         if (error) return <InfoMessage title="Error al Cargar" subtitle={error} onRetry={() => fetchTramites()} isRetrying={isLoading} themeColors={themeColors} styles={styles} />;
         if (Object.keys(groupedData).length === 0) return <InfoMessage title="Todo al día" subtitle="No hay trámites pendientes de inspección." onRetry={() => fetchTramites()} isRetrying={isLoading} themeColors={themeColors} styles={styles} />;
-        
+
         let cardIndex = 0;
         return (
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
-                // ✅ MODIFICACIÓN: Se usa isRefreshing para el control
                 refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[themeColors.primary]} tintColor={themeColors.primary} />}
             >
                 {Object.keys(groupedData).map(dateKey => (
@@ -274,7 +273,7 @@ export default function SelectInspectionScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <Stack.Screen options={{ 
+            <Stack.Screen options={{
                 title: "Seleccionar Trámite",
                 headerStyle: { backgroundColor: themeColors.background },
                 headerTitleStyle: { color: themeColors.text },
