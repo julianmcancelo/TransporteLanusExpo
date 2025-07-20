@@ -33,7 +33,6 @@ export default function InspectorLayout() {
             <Stack.Screen name="verification" />
             <Stack.Screen name="obleas/index" />
             <Stack.Screen name="obleas/[id]" />
-            <Stack.Screen name="historial" />
         </Stack>
     );
 }

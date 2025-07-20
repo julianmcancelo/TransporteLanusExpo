@@ -146,9 +146,10 @@ export default function InspeccionDetalleScreen() {
                         headerAccessory={<StatusBadge estado={habilitacion.estado} themeColors={themeColors} styles={styles} />}
                     >
                         <InfoRow label="N° de Licencia" value={habilitacion.nro_licencia} icon={<FileTextIcon color={themeColors.primary} />} />
-                        <InfoRow label="Tipo de Transporte" value={habilitacion.tipo_transporte} icon={<CarIcon color={themeColors.primary} />} />
-                        <InfoRow label="Expediente" value={habilitacion.expte} icon={<FileTextIcon color={themeColors.primary} />} />
-                    </DetailCard>
+    {/* 👇 LÍNEA CORREGIDA: Ahora usa el ícono correcto */}
+    <InfoRow label="Tipo de Transporte" value={habilitacion.tipo_transporte} icon={<CarIcon color={themeColors.primary} />} />
+    <InfoRow label="Expediente" value={habilitacion.expte} icon={<FileTextIcon color={themeColors.primary} />} />
+</DetailCard>
 
                     {/* Tarjeta de Titular */}
                     {titular && (

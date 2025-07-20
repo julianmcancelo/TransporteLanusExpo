@@ -1,16 +1,25 @@
 // app/(contribuyente)/home.tsx
 
-
-
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import {
+    ActivityIndicator,
+    Alert,
+    Linking,
+    Platform,
+    Pressable,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 // Importaciones de la aplicación
 import { API_LICENSES_URL, API_NOTIFICATIONS_URL } from '@/constants/api';
-import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 
 // --- Definición de Tipos ---
@@ -31,18 +40,17 @@ interface Notification {
 }
 type IconProps = { color: string };
 
-// --- Íconos SVG ---
-const CheckCircleIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke={color} strokeWidth={2} /><Path d="M9 12L11 14L15 10" stroke={color} strokeWidth={2} /></Svg>;
-const AlertTriangleIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={color} strokeWidth={2} /><Path d="M12 9v4M12 17h.01" stroke={color} strokeWidth={2} /></Svg>;
-const XCircleIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke={color} strokeWidth={2} /><Path d="M15 9l-6 6M9 9l6 6" stroke={color} strokeWidth={2} /></Svg>;
-const LogoutIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke={color} strokeWidth={2} /><Path d="M16 17l5-5-5-5M21 12H9" stroke={color} strokeWidth={2} /></Svg>;
-const ChevronRightIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M9 18l6-6-6-6" stroke={color} strokeWidth={2} /></Svg>;
+// --- Íconos SVG (Estilo unificado) ---
+const CheckCircleIcon = ({ color }: IconProps) => <Svg width={20} height={20} viewBox="0 0 24 24" fill="none"><Path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/><Path d="M22 4L12 14.01l-3-3" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></Svg>;
+const AlertTriangleIcon = ({ color }: IconProps) => <Svg width={20} height={20} viewBox="0 0 24 24" fill="none"><Path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /><Path d="M12 9v4M12 17h.01" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+const XCircleIcon = ({ color }: IconProps) => <Svg width={20} height={20} viewBox="0 0 24 24" fill="none"><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /><Path d="M15 9l-6 6M9 9l6 6" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+const LogoutIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></Svg>;
+const ChevronRightIcon = ({ color }: IconProps) => <Svg width={20} height={20} viewBox="0 0 24 24" fill="none"><Path d="M9 18l6-6-6-6" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></Svg>;
 const CarIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M14 16.67H9.33a1 1 0 01-1-1V12.33a1 1 0 011-1H14a1 1 0 011 1v3.34a1 1 0 01-1 1z" stroke={color} strokeWidth={2} /><Path d="M10.33 11.33V8.83a2 2 0 012-2h0a2 2 0 012 2v2.5M17.5 16.67h1a1 1 0 001-1V10.83a3 3 0 00-3-3H7.5a3 3 0 00-3 3v4.84a1 1 0 001 1h1m9 0v2m-9-2v2" stroke={color} strokeWidth={2} /></Svg>;
 const CalendarIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke={color} strokeWidth={2}/><Path d="M16 2v4M8 2v4M3 10h18" stroke={color} strokeWidth={2} /></Svg>;
-const HelpIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M12 22a10 10 0 100-20 10 10 0 000 20zM9.09 9a3 3 0 015.83 1c0 2-3 3-3 3m.01 5h.01" stroke={color} strokeWidth={2} /></Svg>;
-const BellIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9m-4.27 13a2 2 0 01-3.46 0" stroke={color} strokeWidth={2} /></Svg>;
+const HelpIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} /><Path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3m.01 5h.01" stroke={color} strokeWidth={2} /></Svg>;
+const BellIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9m-4.27 13a2 2 0 01-3.46 0" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></Svg>;
 const SunIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Circle cx="12" cy="12" r="5" stroke={color} strokeWidth="2"/><Path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke={color} strokeWidth="2" strokeLinecap="round"/></Svg>;
-
 
 // --- Componentes de UI ---
 
@@ -65,60 +73,65 @@ const Clock = ({ styles }: { styles: any }) => {
     );
 };
 
-const WeatherInfo = ({ styles, themeColors }: { styles: any, themeColors: any }) => (
+const WeatherInfo = ({ styles }: { styles: any }) => (
     <View style={styles.weatherContainer}>
-        <SunIcon color={themeColors.textLight} />
+        <SunIcon color={'#FFFFFF'} />
         <Text style={styles.weatherText}>16°C</Text>
     </View>
 );
 
-const AppHeader = ({ name, onLogout, unreadCount, onShowNotifications, themeColors, styles }: { name: string, onLogout: () => void, unreadCount: number, onShowNotifications: () => void, themeColors: any, styles: any }) => (
-    <LinearGradient colors={[themeColors.primary, themeColors.primaryDark]} style={styles.header}>
+const AppHeader = ({ name, onLogout, unreadCount, onShowNotifications, styles }: { name: string, onLogout: () => void, unreadCount: number, onShowNotifications: () => void, styles: any }) => (
+    <LinearGradient colors={['#29B6F6', '#0288D1']} style={styles.header}>
         <View style={styles.headerTopRow}>
             <Text style={styles.welcomeTitle}>Hola, {name}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <TouchableOpacity onPress={onShowNotifications} style={styles.headerButton}>
-                    <BellIcon color={themeColors.textLight} />
+                    <BellIcon color={'#FFFFFF'} />
                     {unreadCount > 0 && (
-                        <View style={[styles.notificationBadge, { borderColor: themeColors.primaryDark }]}>
+                        <View style={styles.notificationBadge}>
                             <Text style={styles.notificationBadgeText}>{unreadCount}</Text>
                         </View>
                     )}
                 </TouchableOpacity>
-                <TouchableOpacity onPress={onLogout} style={styles.headerButton}>
-                    <LogoutIcon color={themeColors.textLight} />
+                <TouchableOpacity onPress={onLogout} style={[styles.headerButton, { marginLeft: 12 }]}>
+                    <LogoutIcon color={'#FFFFFF'} />
                 </TouchableOpacity>
             </View>
         </View>
         <View style={styles.headerInfoContainer}>
             <Clock styles={styles} />
-            <WeatherInfo styles={styles} themeColors={themeColors} />
+            <WeatherInfo styles={styles} />
         </View>
     </LinearGradient>
 );
 
-const LicenseCard = ({ license, themeColors, styles }: { license: Habilitacion, themeColors: any, styles: any }) => {
+const LicenseCard = ({ license, styles }: { license: Habilitacion, styles: any }) => {
     const router = useRouter();
-    // CORRECCIÓN: Se utiliza React.ReactNode para el tipo del ícono, que es más genérico y seguro.
     const statusConfig: Record<HabilitacionEstado, { text: string; color: string; icon: React.ReactNode }> = {
-        vigente: { text: 'VIGENTE', color: themeColors.success, icon: <CheckCircleIcon color={themeColors.success} /> },
-        'en tramite': { text: 'EN TRÁMITE', color: themeColors.warning, icon: <AlertTriangleIcon color={themeColors.warning} /> },
-        vencido: { text: 'VENCIDO', color: themeColors.error, icon: <XCircleIcon color={themeColors.error} /> },
+        'vigente': { text: 'Vigente', color: '#2E7D32', icon: <CheckCircleIcon color={'#2E7D32'} /> },
+        'en tramite': { text: 'En Trámite', color: '#FF8F00', icon: <AlertTriangleIcon color={'#FF8F00'} /> },
+        'vencido': { text: 'Vencido', color: '#C62828', icon: <XCircleIcon color={'#C62828'} /> },
     };
-    const currentStatus = statusConfig[license.estado] || { text: (license.estado || 'DESCONOCIDO').toUpperCase(), color: themeColors.grayMedium, icon: <AlertTriangleIcon color={themeColors.grayMedium} /> };
+    const currentStatus = statusConfig[license.estado] || { text: (license.estado || 'Desconocido').toUpperCase(), color: '#757575', icon: <AlertTriangleIcon color={'#757575'} /> };
     
+    const handleResolutionPress = () => {
+        Alert.alert(
+            "Función no disponible", 
+            "La visualización de resoluciones estará disponible próximamente."
+        );
+    };
+
     return (
         <View style={styles.licenseCard}>
             <View style={styles.licenseCardHeader}>
-                <View style={[styles.licenseIconContainer, { backgroundColor: `${themeColors.primary}1A` }]}>
-                    <CarIcon color={themeColors.primary} />
+                <View style={[styles.licenseIconContainer, { backgroundColor: '#E3F2FD' }]}>
+                    <CarIcon color={'#0288D1'} />
                 </View>
                 <View style={{flex: 1}}>
                     <Text style={styles.licenseTitle}>Licencia N° {license.licencia}</Text>
                     <Text style={styles.licenseSubtitle}>{license.tipo_transporte}</Text>
                 </View>
             </View>
-            <View style={styles.separator} />
             <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Dominio</Text>
                 <Text style={styles.infoValue}>{license.patente || 'N/A'}</Text>
@@ -130,9 +143,18 @@ const LicenseCard = ({ license, themeColors, styles }: { license: Habilitacion, 
                     <Text style={[styles.statusText, { color: currentStatus.color }]}>{currentStatus.text}</Text>
                 </View>
             </View>
+            
+            <TouchableOpacity style={styles.infoRowDisabled} onPress={handleResolutionPress}>
+                <Text style={styles.infoLabelDisabled}>Resolución</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.infoValueDisabled}>Ver documento</Text>
+                    <ChevronRightIcon color={'#B0BEC5'} />
+                </View>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.credentialButton} onPress={() => router.push(`/credential?licenseToken=${license.token}`)}>
                 <Text style={styles.credentialButtonText}>Ver Credencial Digital</Text>
-                <ChevronRightIcon color={themeColors.primary} />
+                <ChevronRightIcon color={'#0288D1'} />
             </TouchableOpacity>
         </View>
     );
@@ -140,20 +162,20 @@ const LicenseCard = ({ license, themeColors, styles }: { license: Habilitacion, 
 
 const ActionCard = ({ title, subtitle, icon, onPress, styles }: { title: string, subtitle: string, icon: React.ReactNode, onPress: () => void, styles: any }) => (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}>
-        {icon}
+        <View style={[styles.licenseIconContainer, { backgroundColor: '#E3F2FD' }]}>
+            {icon}
+        </View>
         <View style={styles.actionCardContent}>
             <Text style={styles.actionCardTitle}>{title}</Text>
             <Text style={styles.actionCardSubtitle}>{subtitle}</Text>
         </View>
-        <ChevronRightIcon color={styles.actionCardChevron.color} />
+        <ChevronRightIcon color={'#90A4AE'} />
     </Pressable>
 );
 
 // --- Componente Principal ---
 export default function ContribuyenteHomeScreen() {
-    const colorScheme = useColorScheme() ?? 'light';
-    const themeColors = { ...Colors[colorScheme], primary: '#0093D2', primaryDark: '#007AB8' };
-    const styles = getStyles(themeColors);
+    const styles = getStyles();
     
     const { userSession, signOut } = useAuth();
     const router = useRouter();
@@ -198,7 +220,7 @@ export default function ContribuyenteHomeScreen() {
     };
     
     const renderContent = () => {
-        if (isLoading) return <ActivityIndicator size="large" color={themeColors.primary} style={{ marginTop: 40 }} />;
+        if (isLoading) return <ActivityIndicator size="large" color={'#0288D1'} style={{ marginTop: 40 }} />;
         if (error) return <Text style={styles.errorText}>{error}</Text>;
         if (licenses.length === 0) {
             return (
@@ -209,18 +231,18 @@ export default function ContribuyenteHomeScreen() {
             );
         }
         return licenses.map(license => (
-            <LicenseCard key={license.id || license.licencia} license={license} themeColors={themeColors} styles={styles} />
+            <LicenseCard key={license.id || license.licencia} license={license} styles={styles} />
         ));
     };
 
     return (
         <SafeAreaView style={styles.container}>
+            <Stack.Screen options={{ headerShown: false }} />
             <AppHeader
                 name={userSession?.nombre?.split(' ')[0] || 'Usuario'}
                 onLogout={signOut}
                 unreadCount={notifications.filter(n => !n.leida).length}
                 onShowNotifications={() => { /* Lógica para mostrar modal de notificaciones */ }}
-                themeColors={themeColors}
                 styles={styles}
             />
             
@@ -231,15 +253,15 @@ export default function ContribuyenteHomeScreen() {
                 <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
                 <ActionCard 
                     title="Mis Turnos de Inspección"
-                    subtitle="Consultá y confirmá tus próximos turnos"
-                    icon={<CalendarIcon color={themeColors.primary} />}
+                    subtitle="Consultá tus próximos turnos"
+                    icon={<CalendarIcon color={'#0288D1'} />}
                     onPress={() => router.push('/appointments')}
                     styles={styles}
                 />
                 <ActionCard 
                     title="Centro de Ayuda"
-                    subtitle="Contactate con nosotros para asistencia"
-                    icon={<HelpIcon color={themeColors.primary} />}
+                    subtitle="Contactate para asistencia"
+                    icon={<HelpIcon color={'#0288D1'} />}
                     onPress={handleHelpPress}
                     styles={styles}
                 />
@@ -249,48 +271,241 @@ export default function ContribuyenteHomeScreen() {
 };
 
 // --- ESTILOS DINÁMICOS ---
-const getStyles = (colors: any) => StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
+const getStyles = () => StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#E1F5FE' },
     header: {
-        paddingTop: Platform.OS === 'ios' ? 50 : 40,
+        paddingTop: Platform.OS === 'ios' ? 60 : 50,
         paddingBottom: 20,
         paddingHorizontal: 24,
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
     },
-    headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    welcomeTitle: { fontSize: 28, fontWeight: 'bold', color: colors.textLight },
-    headerButton: { marginLeft: 16, padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 99 },
-    notificationBadge: { position: 'absolute', right: -3, top: -3, backgroundColor: colors.error, borderRadius: 9, width: 18, height: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
-    notificationBadgeText: { color: colors.textLight, fontSize: 10, fontWeight: 'bold' },
-    headerInfoContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.2)' },
-    dateText: { fontSize: 16, color: colors.textLight, fontWeight: '600' },
-    timeText: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)' },
-    weatherContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    weatherText: { fontSize: 18, color: colors.textLight, fontWeight: 'bold' },
-    scrollContent: { paddingTop: 24, paddingHorizontal: 20, paddingBottom: 40 },
-    sectionTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 16 },
-    licenseCard: { backgroundColor: colors.cardBackground, borderRadius: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.08, shadowRadius: 15, elevation: 5, borderWidth: 1, borderColor: `${colors.icon}20`, overflow: 'hidden' },
-    licenseCardHeader: { flexDirection: 'row', alignItems: 'center', padding: 20 },
-    licenseIconContainer: { padding: 16, borderRadius: 16, marginRight: 16 },
-    licenseTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
-    licenseSubtitle: { fontSize: 14, color: colors.grayMedium, marginTop: 2 },
-    separator: { height: 1, backgroundColor: `${colors.icon}20`, marginHorizontal: 20 },
-    infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 20 },
-    infoLabel: { fontSize: 16, color: colors.grayMedium },
-    infoValue: { fontSize: 16, color: colors.text, fontWeight: '600' },
-    statusBadge: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 99 },
-    statusText: { marginLeft: 8, fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase' },
-    credentialButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20, borderTopWidth: 1, borderTopColor: `${colors.icon}20` },
-    credentialButtonText: { fontSize: 16, color: colors.primary, fontWeight: 'bold' },
-    actionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBackground, padding: 20, borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: `${colors.icon}20`, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 },
-    actionCardPressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
-    actionCardContent: { flex: 1, marginLeft: 16, gap: 2 },
-    actionCardTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text },
-    actionCardSubtitle: { fontSize: 14, color: colors.grayMedium },
-    actionCardChevron: { color: colors.grayMedium },
-    errorText: { textAlign: 'center', color: colors.error, padding: 20, fontSize: 16 },
-    emptyContainer: { alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: colors.cardBackground, borderRadius: 16, borderWidth: 1, borderColor: `${colors.icon}20` },
-    emptyText: { textAlign: 'center', color: colors.text, paddingVertical: 20, fontSize: 16, fontWeight: '600' },
-    emptySubText: { textAlign: 'center', color: colors.grayMedium, marginTop: -10, fontSize: 14, paddingBottom: 20 },
+    headerTopRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+    },
+    welcomeTitle: { 
+        fontSize: 28, 
+        fontWeight: 'bold', 
+        color: '#FFFFFF',
+        textShadowColor: 'rgba(0, 0, 0, 0.15)',
+        textShadowOffset: {width: 0, height: 2},
+        textShadowRadius: 3
+    },
+    headerButton: { 
+        padding: 10, 
+        backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+        borderRadius: 99 
+    },
+    notificationBadge: { 
+        position: 'absolute', 
+        right: -3, 
+        top: -3, 
+        backgroundColor: '#D32F2F', 
+        borderRadius: 9, 
+        width: 18, 
+        height: 18, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#29B6F6'
+    },
+    notificationBadgeText: { 
+        color: 'white', 
+        fontSize: 10, 
+        fontWeight: 'bold' 
+    },
+    headerInfoContainer: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginTop: 20, 
+        paddingTop: 20, 
+        borderTopWidth: 1, 
+        borderTopColor: 'rgba(255, 255, 255, 0.2)' 
+    },
+    dateText: { 
+        fontSize: 16, 
+        color: '#FFFFFF', 
+        fontWeight: '600' 
+    },
+    timeText: { 
+        fontSize: 14, 
+        color: 'rgba(255, 255, 255, 0.8)' 
+    },
+    weatherContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8,
+    },
+    weatherText: { 
+        fontSize: 18, 
+        color: '#FFFFFF', 
+        fontWeight: 'bold' 
+    },
+    scrollContent: { 
+        paddingHorizontal: 20, 
+        paddingBottom: 40,
+        paddingTop: 24,
+    },
+    sectionTitle: { 
+        fontSize: 22, 
+        fontWeight: 'bold', 
+        color: '#01579B', 
+        marginBottom: 16,
+    },
+    licenseCard: { 
+        backgroundColor: '#FFFFFF', 
+        borderRadius: 20, 
+        marginBottom: 20, 
+        shadowColor: '#01579B', 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 12, 
+        elevation: 5, 
+        overflow: 'hidden' 
+    },
+    licenseCardHeader: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F4F8'
+    },
+    licenseIconContainer: { 
+        padding: 12, 
+        borderRadius: 16, 
+        marginRight: 16 
+    },
+    licenseTitle: { 
+        fontSize: 18, 
+        fontWeight: 'bold', 
+        color: '#0D47A1' 
+    },
+    licenseSubtitle: { 
+        fontSize: 14, 
+        color: '#546E7A', 
+        marginTop: 2 
+    },
+    infoRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        paddingVertical: 14, 
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F4F8'
+    },
+    infoRowDisabled: {
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        paddingVertical: 14, 
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F4F8',
+        opacity: 0.6,
+    },
+    infoLabel: { 
+        fontSize: 15, 
+        color: '#546E7A' 
+    },
+    infoLabelDisabled: {
+        fontSize: 15, 
+        color: '#78909C' 
+    },
+    infoValue: { 
+        fontSize: 15, 
+        color: '#0D47A1', 
+        fontWeight: '600' 
+    },
+    infoValueDisabled: {
+        fontSize: 15, 
+        color: '#78909C', 
+        fontWeight: '600',
+        marginRight: 4,
+    },
+    statusBadge: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingVertical: 4, 
+        paddingHorizontal: 10, 
+        borderRadius: 99 
+    },
+    statusText: { 
+        marginLeft: 6, 
+        fontSize: 14, 
+        fontWeight: 'bold', 
+    },
+    credentialButton: { 
+        flexDirection: 'row', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        paddingVertical: 16, 
+        backgroundColor: '#F0F4F8'
+    },
+    credentialButtonText: { 
+        fontSize: 16, 
+        color: '#0288D1', 
+        fontWeight: 'bold',
+        marginRight: 8
+    },
+    actionCard: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: '#FFFFFF', 
+        padding: 16, 
+        borderRadius: 16, 
+        marginBottom: 16, 
+        shadowColor: '#01579B', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.05, 
+        shadowRadius: 8, 
+        elevation: 3 
+    },
+    actionCardPressed: { 
+        transform: [{ scale: 0.98 }], 
+        opacity: 0.9 
+    },
+    actionCardContent: { 
+        flex: 1, 
+        gap: 2 
+    },
+    actionCardTitle: { 
+        fontSize: 17, 
+        fontWeight: 'bold', 
+        color: '#0D47A1' 
+    },
+    actionCardSubtitle: { 
+        fontSize: 14, 
+        color: '#546E7A' 
+    },
+    errorText: { 
+        textAlign: 'center', 
+        color: '#C62828', 
+        padding: 20, 
+        fontSize: 16 
+    },
+    emptyContainer: { 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: 20, 
+        backgroundColor: '#FFFFFF', 
+        borderRadius: 16, 
+    },
+    emptyText: { 
+        textAlign: 'center', 
+        color: '#01579B', 
+        paddingVertical: 20, 
+        fontSize: 16, 
+        fontWeight: '600' 
+    },
+    emptySubText: { 
+        textAlign: 'center', 
+        color: '#546E7A', 
+        marginTop: -10, 
+        fontSize: 14, 
+        paddingBottom: 20 
+    },
 });

@@ -1,88 +1,130 @@
 // app/+not-found.tsx
 
-/// <reference types="expo-router/types" />
-
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link, Stack } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-// CORRECCIÓN: Se añade 'TouchableOpacity' a la importación.
-import { Animated, Easing, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 // --- Ícono SVG Animado ---
-const SadRobotIcon = ({ animatedValue }: { animatedValue: Animated.Value }) => {
-  const rotate = animatedValue.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['-5deg', '5deg', '-5deg'],
+const SadRobotIcon = () => {
+  const float = useSharedValue(0);
+  const blink = useSharedValue(1);
+
+  useEffect(() => {
+    // Animación de flotar y balancearse
+    float.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 2500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+
+    // Animación de parpadeo para el "ojo"
+    blink.value = withRepeat(
+      withSequence(
+        withDelay(2000, withTiming(0, { duration: 100 })),
+        withTiming(1, { duration: 100 }),
+        withDelay(3000, withTiming(0, { duration: 100 })),
+        withTiming(1, { duration: 100 })
+      ),
+      -1,
+      false
+    );
+  }, [float, blink]);
+
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(float.value, [0, 1], [0, -20]);
+    const rotate = interpolate(float.value, [0, 1], [-6, 6]);
+    return {
+      transform: [{ translateY }, { rotate: `${rotate}deg` }],
+    };
   });
 
-  const translateY = animatedValue.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, -10, 0],
+  const animatedEyeStyle = useAnimatedStyle(() => {
+    return {
+      opacity: blink.value,
+    };
   });
 
   return (
-    <Animated.View style={{ transform: [{ rotate }, { translateY }] }}>
-      <Svg width={120} height={120} viewBox="0 0 24 24" fill="none">
-        <Path d="M12 2a4 4 0 00-4 4h8a4 4 0 00-4-4z" stroke="#9CA3AF" strokeWidth={1.5} />
-        <Path d="M8 6h8v10a2 2 0 01-2 2H10a2 2 0 01-2-2V6z" stroke="#9CA3AF" strokeWidth={1.5} />
-        <Path d="M9 14c.5 1 1.5 1 2 0" stroke="#9CA3AF" strokeWidth={1.5} strokeLinecap="round" />
-        <Path d="M15 11H9" stroke="#9CA3AF" strokeWidth={1.5} strokeLinecap="round" />
-        <Path d="M17 18l-1-3M7 18l1-3" stroke="#9CA3AF" strokeWidth={1.5} strokeLinecap="round" />
+    <Animated.View style={animatedContainerStyle}>
+      <Svg width={140} height={140} viewBox="0 0 24 24" fill="none">
+        <Path d="M12 2C9.79086 2 8 3.79086 8 6H16C16 3.79086 14.2091 2 12 2Z" stroke="#01579B" strokeWidth={1.2} />
+        <Path d="M8 6V16C8 17.1046 8.89543 18 10 18H14C15.1046 18 16 17.1046 16 16V6H8Z" stroke="#01579B" strokeWidth={1.2} />
+        <Path d="M10 14C10.5 15 11.5 15 12 14" stroke="#01579B" strokeWidth={1.2} strokeLinecap="round" />
+        <Animated.View style={animatedEyeStyle}>
+          <Path d="M15 11H9" stroke="#01579B" strokeWidth={1.2} strokeLinecap="round" />
+        </Animated.View>
+        <Path d="M17 18L16 15M7 18L8 15" stroke="#01579B" strokeWidth={1.2} strokeLinecap="round" />
       </Svg>
     </Animated.View>
   );
 };
 
-export default function NotFoundScreen() {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const iconAnim = useRef(new Animated.Value(0)).current;
+// Componente genérico para animar la entrada de elementos
+const AnimatedEntrance = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(20);
 
   useEffect(() => {
-    // Animación de balanceo para el ícono
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(iconAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(iconAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
+    opacity.value = withDelay(delay, withTiming(1, { duration: 800 }));
+    translateY.value = withDelay(delay, withSpring(0, { damping: 12, stiffness: 100 }));
+  }, [opacity, translateY, delay]);
 
-    // Animación de entrada para el texto
-    Animated.stagger(200, [
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 10,
-        friction: 5,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
 
+  return <Animated.View style={style}>{children}</Animated.View>;
+};
+
+export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: 'Oops!', headerBackVisible: false }} />
-      <SafeAreaView style={styles.container}>
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          <View style={styles.content}>
-            <SadRobotIcon animatedValue={iconAnim} />
-            <Text style={styles.title}>Página no encontrada</Text>
-            <Text style={styles.subtitle}>
-              La pantalla que buscas no existe o fue movida.
-            </Text>
+      <Stack.Screen options={{ title: 'Oops!', headerBackTitle: 'Volver', headerTransparent: true, headerTintColor: '#01579B' }} />
+      <LinearGradient
+        colors={['#E1F5FE', '#B3E5FC']}
+        style={styles.container}
+      >
+        <AnimatedEntrance delay={100}>
+          <SadRobotIcon />
+        </AnimatedEntrance>
 
-            <Link href="/" asChild>
-              <TouchableOpacity style={styles.button}>
-                <Text style={styles.buttonText}>Volver al Inicio</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </Animated.View>
-      </SafeAreaView>
+        <AnimatedEntrance delay={300}>
+          <Text style={styles.title}>Página no encontrada</Text>
+        </AnimatedEntrance>
+
+        <AnimatedEntrance delay={500}>
+          <Text style={styles.subtitle}>La pantalla que buscas no existe o fue movida a otro universo.</Text>
+        </AnimatedEntrance>
+
+        <AnimatedEntrance delay={800}>
+          <Link href="/" asChild>
+            <Pressable>
+              {({ pressed }) => (
+                <Animated.View style={[styles.button, pressed && styles.buttonPressed]}>
+                  <Text style={styles.buttonText}>Volver al Inicio</Text>
+                </Animated.View>
+              )}
+            </Pressable>
+          </Link>
+        </AnimatedEntrance>
+      </LinearGradient>
     </>
   );
 }
@@ -92,41 +134,42 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB', // Un fondo gris claro
-  },
-  content: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    padding: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937', // Un color de texto oscuro
-    marginTop: 24,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#01579B',
+    marginTop: 32,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280', // Un gris más suave para el subtítulo
-    marginTop: 8,
+    fontSize: 18,
+    color: '#546E7A',
+    marginTop: 16,
     textAlign: 'center',
-    maxWidth: 300,
+    maxWidth: 320,
+    lineHeight: 26,
   },
   button: {
-    marginTop: 40,
-    backgroundColor: '#0093D2', // Usando el color primario de la app
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 99, // Botón completamente redondeado
-    shadowColor: '#0093D2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    marginTop: 48,
+    backgroundColor: '#0288D1',
+    paddingVertical: 16,
+    paddingHorizontal: 36,
+    borderRadius: 99,
+    shadowColor: '#01579B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.96 }],
+    backgroundColor: '#0277BD',
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 });

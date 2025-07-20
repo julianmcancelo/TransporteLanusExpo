@@ -197,6 +197,7 @@ const InspectionFormScreen = () => {
             habilitacion_id: tramite?.habilitacion?.id,
             nro_licencia: tramite?.habilitacion?.nro_licencia,
             nombre_inspector: userSession?.nombre || 'Inspector',
+            
             firma_inspector: inspectorSignature,
             firma_contribuyente: contributorSignature,
             fotos_vehiculo: {

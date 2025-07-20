@@ -45,7 +45,7 @@ export const API_CONFIRM_APPOINTMENT_URL = `${API_BASE_URL}/confirmar_turno.php`
 // ===========================================
 
 // Para el listado de inspecciones pendientes
-export const API_TRAMITES_URL = `${API_INSPECCIONES_BASE_URL}/get_tramites.php`;
+export const API_TRAMITES_URL = `${API_INSPECCIONES_BASE_URL}/get_turnos_pendientes.php`;
 
 // Para la gestión de turnos en el dashboard de admin
 export const API_GET_TURNOS_POR_FECHA_URL = `${API_INSPECCIONES_BASE_URL}/get_turnos_por_fecha.php`;
