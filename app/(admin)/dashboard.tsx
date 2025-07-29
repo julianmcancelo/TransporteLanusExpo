@@ -14,7 +14,7 @@ import {
     View,
 } from 'react-native';
 import Reanimated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
-import { SharedElement } from 'react-navigation-shared-element';
+
 
 import { DynamicHeader } from '../../src/components/DynamicHeader';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -84,7 +84,7 @@ const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
     };
 
     return (
-        <SharedElement id={`item.${item.habilitacion_id}.card`}>
+        <Reanimated.View sharedTransitionTag={`item.${item.habilitacion_id}.card`}>
             <Pressable onPress={handlePress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={[styles.cardBorder, { backgroundColor: status.color }]} />
                 <View style={styles.cardContent}>
@@ -101,7 +101,7 @@ const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
                     </View>
                 </View>
             </Pressable>
-        </SharedElement>
+        </Reanimated.View>
     );
 };
 

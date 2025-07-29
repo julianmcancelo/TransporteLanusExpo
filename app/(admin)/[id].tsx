@@ -2,11 +2,11 @@ import { Feather } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+import Reanimated from 'react-native-reanimated';
 import {
     ActivityIndicator,
     Platform,
     SafeAreaView,
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -113,7 +113,7 @@ export default function HabilitacionDetalleScreen() {
                 <TabButton label="Historial" isActive={activeTab === 'historial'} onPress={() => setActiveTab('historial')} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <Reanimated.ScrollView sharedTransitionTag={`item.${habilitacionId}.card`} contentContainerStyle={styles.scrollContent}>
                 {activeTab === 'resumen' && (
                     <>
                         {habilitacion.vehiculo && (
@@ -184,7 +184,7 @@ export default function HabilitacionDetalleScreen() {
                         </View>
                     </View>
                 )}
-            </ScrollView>
+            </Reanimated.ScrollView>
         </SafeAreaView>
     );
 }
