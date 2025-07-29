@@ -25,7 +25,7 @@ interface Habilitacion {
     expte: string;
 }
 interface Titular { nombre: string; dni: string; }
-interface Vehiculo { marca: string; modelo: string; dominio: string; }
+import type { Vehiculo } from '../../src/types/habilitacion';
 interface Turno { fecha: string; hora: string; estado: string; }
 interface Tramite {
     habilitacion: Habilitacion;
@@ -116,7 +116,7 @@ const StatusBadge = ({ estado, themeColors, styles }: { estado: Habilitacion['es
 
 const InspectionCard = ({ item, onPress, themeColors, styles }: { item: Tramite, onPress: (item: Tramite) => void, themeColors: any, styles: any }) => {
     const turnoInfo = item.turno
-        ? `${new Date(item.turno.fecha + 'T00:00:00').toLocaleDateString('es-AR')} a las ${item.turno.hora.substring(0, 5)} hs`
+        ? `${new Date((item.turno.fecha ?? "") + 'T00:00:00').toLocaleDateString('es-AR')} a las ${item.turno.hora.substring(0, 5)} hs`
         : 'Sin turno asignado';
 
     const scaleAnim = useRef(new Animated.Value(1)).current;

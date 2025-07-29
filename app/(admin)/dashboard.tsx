@@ -2,33 +2,27 @@
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { Stack, router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Platform,
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { Searchbar } from 'react-native-paper';
-import Svg, { Path } from 'react-native-svg';
+import Reanimated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import { SharedElement } from 'react-navigation-shared-element';
 
+import { DynamicHeader } from '../../src/components/DynamicHeader';
 import { useAuth } from '../../src/contexts/AuthContext';
 import * as api from '../../src/services/api';
 import { Habilitacion } from '../../src/types/habilitacion';
 
-// --- Íconos ---
-const UserIcon = ({ color }: { color: string }) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={color} strokeWidth="2.5"/><Path d="M12 7a4 4 0 100-8 4 4 0 000 8z" stroke={color} strokeWidth="2.5"/></Svg>;
 
-// --- Componentes de UI ---
-
+// --- Helpers & Funciones de Estilo ---
 const getStatusStyle = (estado: string) => {
     switch (estado) {
         case 'HABILITADO':
@@ -40,254 +34,237 @@ const getStatusStyle = (estado: string) => {
     }
 };
 
-const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
-    const status = getStatusStyle(item.estado);
-    const styles = getStyles();
+// --- Componentes de UI ---
+const StatsCard = ({ icon, label, count, color }: {
+    icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+    label: string;
+    count: number;
+    color: string;
+}) => (
+    <View style={styles.statsCard}>
+        <View style={[styles.statsIconContainer, { backgroundColor: `${color}20` }]}>
+            <MaterialCommunityIcons name={icon} size={22} color={color} />
+        </View>
+        <Text style={styles.statsCount}>{count}</Text>
+        <Text style={styles.statsLabel}>{label}</Text>
+    </View>
+);
+
+const HabilitacionesSummary = ({ data }: { data: Habilitacion[] | undefined }) => {
+    const summary = useMemo(() => {
+        const initialValue = { habilitado: 0, tramite: 0, vencido: 0 };
+        return (data || []).reduce((acc: typeof initialValue, item: Habilitacion) => {
+            if (item.estado === 'HABILITADO') acc.habilitado++;
+            else if (item.estado === 'EN TRAMITE') acc.tramite++;
+            else acc.vencido++;
+            return acc;
+        }, initialValue);
+    }, [data]);
 
     return (
-        <Pressable onPress={() => router.push(`/(admin)/${item.habilitacion_id}` as any)} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-            <View style={styles.cardContent}>
-                <View style={styles.cardTextContainer}>
-                    <Text style={styles.cardTitle}>{item.nro_licencia}</Text>
-                    <Text style={styles.cardSubtitle}>{item.titular_principal || `Exp: ${item.expte}`}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: status.backgroundColor }]}>
-                    <MaterialCommunityIcons name={status.icon as any} size={14} color={status.color} />
-                    <Text style={[styles.statusText, { color: status.color }]}>{item.estado}</Text>
-                </View>
-            </View>
-        </Pressable>
+        <View style={styles.summaryContainer}>
+            <StatsCard icon="check-circle" label="Habilitados" count={summary.habilitado} color="#16a34a" />
+            <StatsCard icon="clock-outline" label="En Trámite" count={summary.tramite} color="#f59e0b" />
+            <StatsCard icon="alert-circle" label="Vencidos" count={summary.vencido} color="#dc2626" />
+        </View>
     );
 };
 
-const CustomSegmentedButtons = ({ value, onValueChange }: { value: string, onValueChange: (val: string) => void }) => {
-    const styles = getStyles();
+
+const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
+    const status = getStatusStyle(item.estado);
+    const typeIcon = item.tipo === 'Remis' ? 'taxi' : 'bus-school';
+
+    const handlePress = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push({
+            pathname: `/(admin)/${item.habilitacion_id}` as any,
+            params: { item: JSON.stringify(item) }
+        });
+    };
+
+    return (
+        <SharedElement id={`item.${item.habilitacion_id}.card`}>
+            <Pressable onPress={handlePress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+                <View style={[styles.cardBorder, { backgroundColor: status.color }]} />
+                <View style={styles.cardContent}>
+                    <View style={styles.cardTextContainer}>
+                        <View style={styles.cardTitleContainer}>
+                            <MaterialCommunityIcons name={typeIcon} size={16} color={styles.cardTitle.color} />
+                            <Text style={styles.cardTitle}>{item.nro_licencia}</Text>
+                        </View>
+                        <Text style={styles.cardSubtitle} numberOfLines={1}>{item.titular_principal || `Exp: ${item.expte}`}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: status.backgroundColor }]}>
+                        <MaterialCommunityIcons name={status.icon as any} size={14} color={status.color} />
+                        <Text style={[styles.statusText, { color: status.color }]}>{item.estado}</Text>
+                    </View>
+                </View>
+            </Pressable>
+        </SharedElement>
+    );
+};
+
+const CustomSegmentedButtons = ({ value, onValueChange }: { value: string; onValueChange: (val: 'Escolar' | 'Remis') => void }) => {
     const buttons = [
         { value: 'Escolar', label: 'Escolar', icon: 'bus-school' },
         { value: 'Remis', label: 'Remis', icon: 'taxi' },
     ];
-
     return (
         <View style={styles.segmentedContainer}>
             {buttons.map(button => (
-                <TouchableOpacity 
-                    key={button.value} 
-                    style={[styles.segmentedButton, value === button.value && styles.segmentedButtonActive]}
-                    onPress={() => onValueChange(button.value)}
-                >
-                    <MaterialCommunityIcons 
-                        name={button.icon as any} 
-                        size={20} 
-                        color={value === button.value ? '#FFFFFF' : '#0288D1'} 
-                    />
-                    <Text style={[styles.segmentedButtonText, value === button.value && styles.segmentedButtonTextActive]}>
-                        {button.label}
-                    </Text>
+                <TouchableOpacity key={button.value} style={[styles.segmentedButton, value === button.value && styles.segmentedButtonActive]} onPress={() => onValueChange(button.value as 'Escolar' | 'Remis')} activeOpacity={0.7}>
+                    <MaterialCommunityIcons name={button.icon as any} size={20} color={value === button.value ? '#1F2937' : '#4B5563'}/>
+                    <Text style={[styles.segmentedButtonText, value === button.value && styles.segmentedButtonTextActive]}>{button.label}</Text>
                 </TouchableOpacity>
             ))}
         </View>
     );
 };
 
+const SkeletonRow = () => {
+    return (
+        <View style={[styles.card, { backgroundColor: '#FFFFFF' }]}>
+             <View style={[styles.cardBorder, { backgroundColor: '#E0E0E0' }]} />
+            <View style={styles.cardContent}>
+                <View style={styles.cardTextContainer}>
+                    <View style={[styles.skeletonLine, { width: '50%', height: 20, marginBottom: 8 }]} />
+                    <View style={[styles.skeletonLine, { width: '80%', height: 16 }]} />
+                </View>
+                <View style={[styles.skeletonLine, { width: 90, height: 28, borderRadius: 14 }]} />
+            </View>
+        </View>
+    );
+};
 
+const SkeletonLoader = () => (
+    <View style={{ gap: 16 }}>
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
+    </View>
+);
+
+const EmptyListComponent = () => {
+    return (
+        <View style={styles.centerContainer}>
+            <MaterialCommunityIcons name="folder-search-outline" size={64} color="#9E9E9E" />
+            <Text style={styles.emptyText}>No se encontraron habilitaciones</Text>
+            <Text style={styles.emptySubtitle}>Intenta ajustar tu búsqueda o los filtros.</Text>
+        </View>
+    );
+};
+
+// --- Componente Principal ---
 export default function AdminDashboard() {
-    const { userSession } = useAuth();
-    const [tipoTransporte, setTipoTransporte] = useState<'Escolar' | 'Remis' | 'Demo'>('Escolar');
+    const { userSession, signOut } = useAuth();
+    const [tipoTransporte, setTipoTransporte] = useState<'Escolar' | 'Remis'>('Escolar');
     const [searchQuery, setSearchQuery] = useState('');
-    const styles = getStyles();
 
-    const { data: habilitaciones, isLoading, error } = useQuery({
+    // ✨ CORRECCIÓN APLICADA AQUÍ ✨
+    const scrollY = useSharedValue(0);
+
+    const { data: habilitaciones, isLoading, error, isFetching } = useQuery({
         queryKey: ['habilitaciones', tipoTransporte, searchQuery],
         queryFn: () => api.getHabilitaciones({ tipo: tipoTransporte, buscar: searchQuery }),
     });
+
+    const scrollHandler = useAnimatedScrollHandler((event) => {
+        scrollY.value = event.contentOffset.y;
+    });
+
+    const onSegmentChange = (value: 'Escolar' | 'Remis') => {
+        Haptics.selectionAsync();
+        setTipoTransporte(value);
+    };
 
     if (error) {
         return <View style={styles.centerContainer}><Text style={styles.errorText}>Error al cargar los datos.</Text></View>;
     }
 
-    const userInitial = userSession?.nombre ? userSession.nombre.substring(0, 1).toUpperCase() : 'U';
-
     return (
-        <SafeAreaView style={styles.flexOne}>
+        <View style={styles.flexOne}>
             <Stack.Screen options={{ headerShown: false }} />
-            <FlatList
+            
+            <DynamicHeader
+                scrollY={scrollY}
+                userSession={userSession}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onLogout={async () => {
+                    await signOut();
+                    router.replace('/login');
+                }}
+            />
+
+            <Reanimated.FlatList
                 data={habilitaciones}
                 keyExtractor={(item) => item.habilitacion_id.toString()}
                 renderItem={({ item }) => <HabilitacionRow item={item} />}
+                onScroll={scrollHandler}
+                scrollEventThrottle={16}
+                contentContainerStyle={{ paddingTop: 360, paddingBottom: 50 }}
                 ListHeaderComponent={
-                    <>
-                        <LinearGradient colors={['#E1F5FE', '#B3E5FC']} style={styles.headerGradient}>
-                            <View style={styles.headerContainer}>
-                                <View style={styles.headerTopRow}>
-                                    <View>
-                                        <Text style={styles.headerSubtitle}>Bienvenido,</Text>
-                                        <Text style={styles.headerTitle}>{userSession?.nombre?.split(' ')[0]}</Text>
-                                    </View>
-                                    <View style={[styles.avatar, { backgroundColor: '#0288D1' }]}>
-                                        <Text style={styles.avatarText}>{userInitial}</Text>
-                                    </View>
-                                </View>
-                                <Searchbar 
-                                    placeholder="Buscar por licencia o titular..." 
-                                    onChangeText={setSearchQuery} 
-                                    value={searchQuery} 
-                                    style={styles.searchbar}
-                                    iconColor='#0288D1'
-                                />
-                            </View>
-                        </LinearGradient>
-
-                        <View style={styles.filterContainer}>
-                             <CustomSegmentedButtons
-                                value={tipoTransporte}
-                                onValueChange={(value) => setTipoTransporte(value as any)}
-                            />
-                        </View>
-                        {isLoading && <ActivityIndicator animating={true} size="large" color="#0288D1" style={styles.loadingIndicator} />}
-                    </>
+                    <View style={styles.listHeaderContainer}>
+                        <HabilitacionesSummary data={habilitaciones} />
+                        <CustomSegmentedButtons value={tipoTransporte} onValueChange={onSegmentChange} />
+                        {isFetching && !isLoading && <ActivityIndicator style={{ marginVertical: 10 }} color="#111827" />}
+                        {isLoading && <SkeletonLoader />}
+                    </View>
                 }
-                ListEmptyComponent={!isLoading ? (
-                    <View style={styles.centerContainer}><Text style={styles.emptyText}>No se encontraron habilitaciones.</Text></View>
-                ) : null}
-                contentContainerStyle={styles.listContentContainer}
+                ListEmptyComponent={!isLoading ? <EmptyListComponent /> : null}
+                showsVerticalScrollIndicator={false}
+                ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
             />
-            <TouchableOpacity 
-                style={styles.fab} 
-                onPress={() => Alert.alert('Nueva Habilitación', 'Aquí se abriría el formulario para crear un nuevo registro.')}
-            >
-                <MaterialCommunityIcons name="plus" size={24} color="white" />
-            </TouchableOpacity>
-        </SafeAreaView>
+        </View>
     );
 }
 
-const getStyles = () => StyleSheet.create({
-    flexOne: { flex: 1, backgroundColor: '#E1F5FE' },
-    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-    headerGradient: { 
-        paddingTop: Platform.OS === 'android' ? 40 : 20,
-        borderBottomLeftRadius: 30, 
-        borderBottomRightRadius: 30 
+// --- Hoja de Estilos ---
+const styles = StyleSheet.create({
+    flexOne: { flex: 1, backgroundColor: '#F3F4F6' },
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#F3F4F6' },
+    errorText: { color: '#B71C1C', fontSize: 16, fontWeight: 'bold' },
+    
+    listHeaderContainer: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        gap: 20,
+        marginBottom: 16,
     },
-    headerContainer: { 
-        paddingHorizontal: 20, 
-        paddingTop: 20, 
-        paddingBottom: 40 
-    },
-    headerTopRow: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 20 
-    },
-    headerTitle: { 
-        fontSize: 28, 
-        fontWeight: 'bold', 
-        color: '#01579B' 
-    },
-    headerSubtitle: { 
-        fontSize: 16, 
-        color: '#01579B' 
-    },
-    avatar: { 
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarText: {
-        fontSize: 24,
-        color: 'white',
-        fontWeight: 'bold',
-    },
-    searchbar: { 
-        backgroundColor: 'white', 
-        borderRadius: 16,
-        shadowColor: "#01579B",
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    filterContainer: { 
-        paddingHorizontal: 20, 
-        marginTop: -20, 
-        marginBottom: 10 
-    },
-    loadingIndicator: { marginVertical: 32 },
-    listContentContainer: { 
-        paddingHorizontal: 16, 
-        paddingBottom: 80, 
-        flexGrow: 1 
-    },
-    emptyText: { color: '#546E7A', fontSize: 16 },
-    errorText: { color: '#C62828', fontSize: 16 },
-    card: {
-        marginBottom: 12,
-        backgroundColor: 'white',
-        borderRadius: 16,
-        shadowColor: '#01579B',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    cardPressed: {
-        transform: [{ scale: 0.98 }]
-    },
-    cardContent: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        padding: 16 
-    },
-    cardTextContainer: { flex: 1 },
-    cardTitle: { 
-        fontSize: 16, 
-        fontWeight: 'bold', 
-        color: '#0D47A1' 
-    },
-    cardSubtitle: { 
-        fontSize: 14, 
-        color: '#546E7A', 
-        marginTop: 2 
-    },
-    statusBadge: {
+
+    summaryContainer: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    statsCard: {
+        flex: 1,
         alignItems: 'center',
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 999,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    statusText: { 
-        marginLeft: 6, 
-        fontSize: 12, 
-        fontWeight: 'bold' 
-    },
-    fab: {
-        position: 'absolute',
-        margin: 16,
-        right: 0,
-        bottom: 0,
-        backgroundColor: '#0288D1',
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+    statsIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#01579B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 8,
+        marginBottom: 8,
     },
+    statsCount: { fontSize: 22, fontWeight: 'bold', color: '#1F2937' },
+    statsLabel: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
+
     segmentedContainer: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        borderRadius: 16,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 12,
         padding: 4,
     },
     segmentedButton: {
@@ -296,23 +273,69 @@ const getStyles = () => StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingVertical: 10,
-        borderRadius: 12,
+        borderRadius: 9,
     },
     segmentedButtonActive: {
-        backgroundColor: '#0288D1',
-        shadowColor: '#01579B',
-        shadowOffset: { width: 0, height: 2 },
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
-        shadowRadius: 3,
+        shadowRadius: 2,
         elevation: 3,
     },
-    segmentedButtonText: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: '#0288D1',
-        marginLeft: 8,
+    segmentedButtonText: { fontSize: 15, fontWeight: '600', color: '#4B5563', marginLeft: 8 },
+    segmentedButtonTextActive: { color: '#1F2937' },
+    
+    card: {
+        backgroundColor: 'white',
+        borderRadius: 16,
+        shadowColor: '#9CA3AF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        elevation: 5,
+        marginHorizontal: 20,
     },
-    segmentedButtonTextActive: {
-        color: '#FFFFFF',
+    cardPressed: {
+        transform: [{ scale: 0.98 }],
+        shadowOpacity: 0.1,
     },
+    cardBorder: {
+        position: 'absolute',
+        left: 0,
+        top: 12,
+        bottom: 12,
+        width: 5,
+        borderTopRightRadius: 4,
+        borderBottomRightRadius: 4,
+    },
+    cardContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingLeft: 20,
+        paddingRight: 12,
+    },
+    cardTextContainer: { flex: 1, marginRight: 10 },
+    cardTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    cardTitle: { fontSize: 17, fontWeight: 'bold', color: '#111827', marginLeft: 8 },
+    cardSubtitle: { fontSize: 14, color: '#4B5563', marginLeft: 29 },
+
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 999,
+    },
+    statusText: { marginLeft: 6, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+    skeletonLine: { backgroundColor: '#E5E7EB', borderRadius: 4 },
+
+    emptyText: { color: '#4B5563', fontSize: 18, fontWeight: '600', marginTop: 16 },
+    emptySubtitle: { color: '#6B7280', fontSize: 14, marginTop: 4, textAlign: 'center' },
 });

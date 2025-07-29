@@ -3,12 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Stack, useRouter } from 'expo-router';
 import React from 'react';
 
-// --- Paleta de Colores (se mantiene por si se usa en otros componentes) ---
-const theme = {
-    background: '#FFFFFF',
-    iconColor: '#3B82F6',
-    textColor: '#1E293B',
-};
 
 export default function InspectorLayout() {
     const { signOut } = useAuth();
@@ -33,6 +27,7 @@ export default function InspectorLayout() {
             <Stack.Screen name="verification" />
             <Stack.Screen name="obleas/index" />
             <Stack.Screen name="obleas/[id]" />
+            <Stack.Screen name="gestion-legajo" />
         </Stack>
     );
 }

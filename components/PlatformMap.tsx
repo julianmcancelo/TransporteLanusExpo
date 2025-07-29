@@ -1,5 +1,5 @@
-// components/PlatformMap.tsx
-import React from 'react';
+// [MAP COMPONENT TEMPORARILY DISABLED]
+// import React from 'react';
 import { Platform, View, Text, StyleSheet } from 'react-native';
 
 // Platform-specific imports

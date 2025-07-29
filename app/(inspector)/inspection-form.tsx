@@ -48,7 +48,7 @@ interface Photo extends ImagePickerAsset { location: LocationData | null; }
 interface InspectionItem { id: string; nombre: string; categoria: string; estado: 'bien' | 'regular' | 'mal' | null; observacion: string; foto: Photo | null; }
 interface Habilitacion { id: string; nro_licencia: string; tipo_transporte: string; }
 interface Titular { nombre: string; dni: string; email?: string; }
-interface Vehiculo { dominio: string; marca: string; modelo: string; }
+import type { Vehiculo } from '../../src/types/habilitacion';
 interface Tramite { habilitacion: Habilitacion; titular: Titular | null; vehiculo: Vehiculo | null; }
 
 const QUEUE_KEY = '@inspeccionQueue';

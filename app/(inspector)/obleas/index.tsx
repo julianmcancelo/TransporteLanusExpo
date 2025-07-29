@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, FlatList, Linking, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 // --- Paleta de Colores y Tema Refinado ---
@@ -22,6 +22,8 @@ const theme = {
     plateBackground: '#F8FAFC',
     plateBorder: '#E2E8F0',
     skeleton: '#E2E8F0',
+    success: '#10B981', // Color para WhatsApp
+    disabled: '#9CA3AF', // Color para botones deshabilitados
 };
 
 // --- Iconos ---
@@ -31,6 +33,7 @@ const WifiOffIcon = ({ c, s = 48 }: { c: string, s?: number }) => <Svg width={s}
 const CarIcon = ({ c, s = 14 }: { c: string, s?: number }) => <Svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M14 16.67H9.33a1 1 0 01-1-1V12.33a1 1 0 011-1H14a1 1 0 011 1v3.34a1 1 0 01-1 1z" /><Path d="M10.33 11.33V8.83a2 2 0 012-2h0a2 2 0 012 2v2.5M17.5 16.67h1a1 1 0 001-1V10.83a3 3 0 00-3-3H7.5a3 3 0 00-3 3v4.84a1 1 0 001 1h1m9 0v2m-9-2v2" /></Svg>;
 const VanIcon = ({ c, s = 14 }: { c: string, s?: number }) => <Svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M19 19V6a2 2 0 00-2-2H7a2 2 0 00-2 2v13M5 19h14M10 19v-4h4v4" /><Circle cx="7.5" cy="15.5" r="1.5" /><Circle cx="16.5" cy="15.5" r="1.5" /></Svg>;
 const SearchIcon = ({ c, s = 20 }: { c: string, s?: number }) => <Svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><Circle cx="11" cy="11" r="8" /><Path d="M21 21l-4.35-4.35" /></Svg>;
+const WhatsAppIcon = ({ c, s = 16 }: { c: string, s?: number }) => <Svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></Svg>;
 
 // --- Tipos de Datos ---
 interface ObleaPendiente {
@@ -38,6 +41,7 @@ interface ObleaPendiente {
     nro_licencia: string;
     titular_principal: string;
     dominio: string;
+    telefono: string; // Se espera el teléfono desde la API
 }
 
 // --- Lógica de Contenido Inteligente ---
@@ -66,30 +70,64 @@ const AnimatedGridItem = ({ item, index, onPress }: { item: ObleaPendiente, inde
 
     const handlePressIn = () => Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true }).start();
     const handlePressOut = () => Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }).start();
-    const handlePress = () => {
+    const handleCardPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         onPress();
     };
 
+    // MODIFICADO: Mensaje de WhatsApp más completo
+    const handleWhatsAppPress = async () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (!item?.telefono) {
+            Alert.alert("Sin Teléfono", "El titular no tiene un número de teléfono registrado.");
+            return;
+        }
+
+        const titular = item.titular_principal.split(' ')[0];
+        const dominio = item.dominio;
+        const licencia = item.nro_licencia;
+        
+        const mensaje = `Estimado/a ${titular}, nos comunicamos desde la Dirección Gral. de Movilidad y Transporte del Municipio de Lanús en referencia a su licencia N° ${licencia} para el vehículo con dominio ${dominio}.\n\nNecesitamos coordinar un día y horario para realizar la colocación de la oblea reglamentaria.\n\nPor favor, indíquenos su disponibilidad para agendar un turno.\n\nGracias.`;
+        
+        const numeroWhatsApp = `549${item.telefono.replace(/[^0-9]/g, '')}`;
+        const url = `whatsapp://send?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensaje)}`;
+
+        try {
+            await Linking.openURL(url);
+        } catch (e) {
+            Alert.alert("Error", "No se pudo abrir WhatsApp. Verifique que esté instalado.");
+        }
+    };
+
     return (
-        <Animated.View style={[styles.gridItem, { opacity: fadeAnim }]}>
-            <TouchableOpacity onPress={handlePress} onPressIn={handlePressIn} onPressOut={handlePressOut} activeOpacity={1}>
-                <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                    <LinearGradient colors={theme.cardGradient} style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            {icon}
-                            <Text style={styles.vehicleTypeText}>{type}</Text>
-                        </View>
-                        <View style={styles.plateContainer}>
-                            <Text style={styles.plateText}>{formattedDominio}</Text>
-                        </View>
-                        <View style={styles.cardInfo}>
-                            <Text style={styles.titularText} numberOfLines={2}>{item.titular_principal}</Text>
-                            <Text style={styles.licenciaText} numberOfLines={1}>{item.nro_licencia}</Text>
-                        </View>
-                    </LinearGradient>
-                </Animated.View>
-            </TouchableOpacity>
+        <Animated.View style={[styles.gridItem, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+            <LinearGradient colors={theme.cardGradient} style={styles.card}>
+                <Pressable onPress={handleCardPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
+                    <View style={styles.cardHeader}>
+                        {icon}
+                        <Text style={styles.vehicleTypeText}>{type}</Text>
+                    </View>
+                    <View style={styles.plateContainer}>
+                        <Text style={styles.plateText}>{formattedDominio}</Text>
+                    </View>
+                    <View style={styles.cardInfo}>
+                        <Text style={styles.titularText} numberOfLines={2}>{item.titular_principal}</Text>
+                        <Text style={styles.licenciaText} numberOfLines={1}>{item.nro_licencia}</Text>
+                    </View>
+                </Pressable>
+                
+                <View style={styles.cardActions}>
+                     <TouchableOpacity 
+                        style={[styles.whatsappButton, !item.telefono && styles.disabledButton]}
+                        onPress={handleWhatsAppPress}
+                        disabled={!item.telefono}
+                        activeOpacity={0.7}
+                    >
+                        <WhatsAppIcon c={theme.white} s={16} />
+                        <Text style={styles.whatsappButtonText}>Contactar</Text>
+                    </TouchableOpacity>
+                </View>
+            </LinearGradient>
         </Animated.View>
     );
 };
@@ -129,14 +167,14 @@ const SkeletonGridItem = ({ index }: { index: number }) => {
 
     return (
         <View style={styles.gridItem}>
-            <View style={[styles.card, { backgroundColor: theme.card }]}>
+            <View style={[styles.card, { backgroundColor: theme.card, shadowOpacity: 0.1, elevation: 2 }]}>
                 <View style={[styles.skeletonBox, { width: "50%", height: 22, marginBottom: 16 }]} />
                 <View style={[styles.skeletonBox, { width: "100%", height: 45, marginBottom: 16 }]} />
                 <View style={[styles.skeletonBox, { width: "80%", height: 20, marginBottom: 6 }]} />
                 <View style={[styles.skeletonBox, { width: "60%", height: 16 }]} />
                 <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX }] }]}>
                     <LinearGradient
-                        colors={['transparent', 'rgba(255,255,255,0.3)', 'transparent']}
+                        colors={['transparent', 'rgba(226, 232, 240, 0.3)', 'transparent']}
                         start={{ x: 1, y: 1 }}
                         style={StyleSheet.absoluteFill}
                     />
@@ -150,7 +188,7 @@ const SkeletonGridItem = ({ index }: { index: number }) => {
 export default function ListaObleasScreen() {
     const router = useRouter();
     const styles = getStyles();
-    const netInfo = useNetInfo(); // ✅ CORRECCIÓN: Usar el hook en el nivel superior
+    const netInfo = useNetInfo();
     const [pendientes, setPendientes] = useState<ObleaPendiente[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -161,7 +199,6 @@ export default function ListaObleasScreen() {
             setIsLoading(true);
         }
 
-        // ✅ CORRECCIÓN: Chequear el estado de la conexión de forma segura
         if (netInfo.isConnected === false) {
             setError("Sin conexión a internet.");
             setIsLoading(false);
@@ -181,11 +218,10 @@ export default function ListaObleasScreen() {
         } finally {
             setIsLoading(false);
         }
-    }, [netInfo.isConnected, pendientes.length]); // ✅ CORRECCIÓN: Depender del estado de la conexión
+    }, [netInfo.isConnected, pendientes.length]);
 
     useFocusEffect(
         useCallback(() => {
-            // Solo intentar cargar si ya sabemos el estado de la conexión
             if (netInfo.isConnected !== null) {
                 fetchObleasPendientes();
             }
@@ -310,10 +346,9 @@ const getStyles = () => StyleSheet.create({
         shadowOpacity: 0.8,
         shadowRadius: 22,
         elevation: 10,
-        padding: 12,
-        alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.7)',
+        overflow: 'hidden',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -323,7 +358,8 @@ const getStyles = () => StyleSheet.create({
         paddingVertical: 5,
         paddingHorizontal: 10,
         borderRadius: 20,
-        marginBottom: 16,
+        margin: 12,
+        marginBottom: 4,
     },
     vehicleTypeText: {
         marginLeft: 6,
@@ -337,8 +373,9 @@ const getStyles = () => StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: theme.plateBorder,
-        width: '100%',
-        marginBottom: 16,
+        width: 'auto',
+        marginHorizontal: 12,
+        marginBottom: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -352,10 +389,12 @@ const getStyles = () => StyleSheet.create({
     },
     cardInfo: {
         alignItems: 'center',
-        width: '100%',
-        paddingHorizontal: 4,
+        width: 'auto',
+        marginHorizontal: 12,
+        marginBottom: 12,
         minHeight: 60,
         justifyContent: 'center',
+        paddingBottom: 12,
     },
     titularText: {
         fontSize: 15,
@@ -373,5 +412,27 @@ const getStyles = () => StyleSheet.create({
         backgroundColor: theme.skeleton,
         borderRadius: 8,
         overflow: 'hidden',
+    },
+    cardActions: {
+        padding: 12,
+        borderTopWidth: 1,
+        borderTopColor: theme.plateBorder,
+    },
+    whatsappButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.success,
+        paddingVertical: 10,
+        borderRadius: 12,
+    },
+    disabledButton: {
+        backgroundColor: theme.disabled,
+    },
+    whatsappButtonText: {
+        color: theme.white,
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginLeft: 8,
     },
 });

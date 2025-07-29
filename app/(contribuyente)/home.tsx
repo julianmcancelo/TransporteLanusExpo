@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Linking,
+    Linking, // NUEVO: Se importa Linking para poder abrir URLs externas
     Platform,
     Pressable,
     SafeAreaView,
@@ -22,6 +22,10 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { API_LICENSES_URL, API_NOTIFICATIONS_URL } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 
+// NUEVO: URL base donde se guardan los documentos.
+// ¡DEBES CAMBIAR ESTA URL POR LA RUTA REAL A TU CARPETA DE UPLOADS!
+const BASE_UPLOADS_URL = 'https://credenciales.transportelanus.com.ar/uploads/documentos_habilitaciones/';
+
 // --- Definición de Tipos ---
 type HabilitacionEstado = 'vigente' | 'en tramite' | 'vencido';
 
@@ -32,6 +36,8 @@ interface Habilitacion {
   patente: string;
   estado: HabilitacionEstado;
   token: string;
+  // MODIFICADO: Se añade el campo opcional para la resolución que viene de la API
+  resolucion_url?: string;
 }
 interface Notification {
   id: string;
@@ -40,7 +46,7 @@ interface Notification {
 }
 type IconProps = { color: string };
 
-// --- Íconos SVG (Estilo unificado) ---
+// --- Íconos SVG (Sin cambios) ---
 const CheckCircleIcon = ({ color }: IconProps) => <Svg width={20} height={20} viewBox="0 0 24 24" fill="none"><Path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/><Path d="M22 4L12 14.01l-3-3" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></Svg>;
 const AlertTriangleIcon = ({ color }: IconProps) => <Svg width={20} height={20} viewBox="0 0 24 24" fill="none"><Path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /><Path d="M12 9v4M12 17h.01" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 const XCircleIcon = ({ color }: IconProps) => <Svg width={20} height={20} viewBox="0 0 24 24" fill="none"><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /><Path d="M15 9l-6 6M9 9l6 6" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
@@ -51,6 +57,7 @@ const CalendarIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewB
 const HelpIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} /><Path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3m.01 5h.01" stroke={color} strokeWidth={2} /></Svg>;
 const BellIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9m-4.27 13a2 2 0 01-3.46 0" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></Svg>;
 const SunIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Circle cx="12" cy="12" r="5" stroke={color} strokeWidth="2"/><Path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke={color} strokeWidth="2" strokeLinecap="round"/></Svg>;
+
 
 // --- Componentes de UI ---
 
@@ -114,11 +121,22 @@ const LicenseCard = ({ license, styles }: { license: Habilitacion, styles: any }
     };
     const currentStatus = statusConfig[license.estado] || { text: (license.estado || 'Desconocido').toUpperCase(), color: '#757575', icon: <AlertTriangleIcon color={'#757575'} /> };
     
-    const handleResolutionPress = () => {
-        Alert.alert(
-            "Función no disponible", 
-            "La visualización de resoluciones estará disponible próximamente."
-        );
+    // MODIFICADO: Esta función ahora construye la URL completa y la abre.
+    const handleResolutionPress = async (fileName: string) => {
+        const fullUrl = `${BASE_UPLOADS_URL}${fileName}`;
+        try {
+            // Verifica si el dispositivo puede abrir la URL
+            const supported = await Linking.canOpenURL(fullUrl);
+            if (supported) {
+                // Abre la URL en el navegador del dispositivo o en un visor de PDF
+                await Linking.openURL(fullUrl);
+            } else {
+                Alert.alert("Error", `No se puede abrir esta URL: ${fullUrl}`);
+            }
+        } catch (error) {
+            Alert.alert("Error", "Ocurrió un problema al intentar abrir el documento.");
+            console.error("Linking Error:", error);
+        }
     };
 
     return (
@@ -144,13 +162,23 @@ const LicenseCard = ({ license, styles }: { license: Habilitacion, styles: any }
                 </View>
             </View>
             
-            <TouchableOpacity style={styles.infoRowDisabled} onPress={handleResolutionPress}>
-                <Text style={styles.infoLabelDisabled}>Resolución</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={styles.infoValueDisabled}>Ver documento</Text>
-                    <ChevronRightIcon color={'#B0BEC5'} />
+            {/* MODIFICADO: Lógica para mostrar el botón de Resolución si existe la URL */}
+            {license.resolucion_url ? (
+                // Si hay URL, muestra un botón funcional
+                <TouchableOpacity style={styles.infoRow} onPress={() => handleResolutionPress(license.resolucion_url!)}>
+                    <Text style={styles.infoLabel}>Resolución</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={styles.infoValue}>Ver documento</Text>
+                        <ChevronRightIcon color={'#0288D1'} />
+                    </View>
+                </TouchableOpacity>
+            ) : (
+                // Si no hay URL, muestra un texto informativo no-clicable
+                <View style={styles.infoRowDisabled}>
+                    <Text style={styles.infoLabelDisabled}>Resolución</Text>
+                    <Text style={styles.infoValueDisabled}>No disponible</Text>
                 </View>
-            </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.credentialButton} onPress={() => router.push(`/credential?licenseToken=${license.token}`)}>
                 <Text style={styles.credentialButtonText}>Ver Credencial Digital</Text>
@@ -196,11 +224,17 @@ export default function ContribuyenteHomeScreen() {
             const licensesResult = await licensesRes.json();
             const notificationsResult = await notificationsRes.json();
 
-            if (licensesResult.status === 'success') setLicenses(licensesResult.data || []);
-            else throw new Error(licensesResult.message || 'Error al cargar habilitaciones');
+            if (licensesResult.status === 'success') {
+                setLicenses(licensesResult.data || []);
+            } else {
+                throw new Error(licensesResult.message || 'Error al cargar habilitaciones');
+            }
             
-            if (notificationsResult.status === 'success') setNotifications(notificationsResult.data || []);
-            else console.error("Error cargando notificaciones:", notificationsResult.message);
+            if (notificationsResult.status === 'success') {
+                setNotifications(notificationsResult.data || []);
+            } else {
+                console.error("Error cargando notificaciones:", notificationsResult.message);
+            }
 
         } catch (err: any) {
             setError(err.message);

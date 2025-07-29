@@ -14,9 +14,13 @@ export interface Persona {
     dominio: string;
     marca?: string;
     modelo?: string;
+    ano?: string;
     motor?: string;
     asientos?: number;
     inscripcion_inicial?: string;
+    Vencimiento_VTV?: string;
+    Vencimiento_Poliza?: string;
+    chasis?: string;
   }
   
   export interface Establecimiento {
@@ -72,6 +76,7 @@ export interface Persona {
     vigencia_inicio: string; // Formato 'YYYY-MM-DD'
     vigencia_fin: string; // Formato 'YYYY-MM-DD'
     tipo_transporte: 'Escolar' | 'Remis' | 'Demo';
+    tipo: 'Escolar' | 'Remis'; 
     expte: string | null;
     observaciones: string | null;
     titular_principal: string | null;

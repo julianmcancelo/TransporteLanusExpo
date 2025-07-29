@@ -2,9 +2,30 @@
 // src/constants/Colors.ts - v2.3 (Estructura Unificada y Final)
 // =================================================================
 
-const AppColors = {
+export type ColorTheme = {
+  text: string;
+  background: string;
+  tint: string;
+  icon: string;
+  border: string;
+  primary: string;
+  primaryDark: string;
+  primaryLight: string;
+  accent: string;
+  cardBackground: string;
+  grayMedium: string;
+  grayLight: string;
+  textLight: string;
+  success: string;
+  error: string;
+  warning: string;
+  info: string;
+};
+
+export const AppColors = {
   primary: '#003366',
   primaryDark: '#002244',
+  primaryLight: '#4F6D99', 
   accent: '#ffc107',
   
   textDark: '#212529',
@@ -33,10 +54,11 @@ export const Colors = {
     border: AppColors.border,
     primary: AppColors.primary,
     primaryDark: AppColors.primaryDark,
+    primaryLight: AppColors.primaryLight, 
     accent: AppColors.accent,
     cardBackground: AppColors.cardBackground,
     grayMedium: AppColors.grayMedium,
-    grayLight: AppColors.grayLight, // Propiedad añadida
+    grayLight: AppColors.grayLight, 
     textLight: AppColors.textLight,
     success: AppColors.success,
     error: AppColors.error,
@@ -51,6 +73,7 @@ export const Colors = {
     border: '#343a40',
     primary: AppColors.primary,
     primaryDark: AppColors.primaryDark,
+    primaryLight: '#4F6D99', 
     accent: AppColors.accent,
     cardBackground: '#1E1E1E',
     grayMedium: '#adb5bd',

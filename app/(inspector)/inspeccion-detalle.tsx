@@ -18,7 +18,7 @@ interface Habilitacion {
     expte: string;
 }
 interface Titular { nombre: string; dni: string; }
-interface Vehiculo { marca: string; modelo: string; dominio: string; }
+import type { Vehiculo } from '../../src/types/habilitacion';
 interface Turno { fecha: string; hora: string; estado: string; }
 interface Tramite {
     habilitacion: Habilitacion;

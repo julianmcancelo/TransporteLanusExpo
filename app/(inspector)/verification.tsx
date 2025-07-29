@@ -22,11 +22,7 @@ interface Titular {
     nombre: string;
     dni: string;
 }
-interface Vehiculo {
-    dominio: string;
-    marca: string;
-    modelo: string;
-}
+import type { Vehiculo } from '../../src/types/habilitacion';
 interface Turno {
     fecha: string;
     hora: string;

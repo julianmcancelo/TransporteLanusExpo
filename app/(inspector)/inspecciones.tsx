@@ -9,12 +9,10 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 
-// --- Configuración para LayoutAnimation ---
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// --- Tipos de Datos ---
 interface Inspection {
   id: string;
   location: string;
@@ -24,8 +22,6 @@ interface Inspection {
 const INSPECTIONS_STORAGE_KEY = '@inspections_data';
 const OFFLINE_DATA_KEY = '@offline_prepared_data';
 
-
-// --- Iconos SVG ---
 type IconProps = { color: string };
 const LogoutIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M16 17l5-5-5-5M21 12H9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 const ChevronRightIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M9 18l6-6-6-6" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
@@ -37,9 +33,9 @@ const WifiOffIcon = ({ color }: IconProps) => <Svg width={16} height={16} viewBo
 const DownloadCloudIcon = ({ color }: IconProps) => <Svg width={20} height={20} viewBox="0 0 24 24" fill="none"><Path d="M8 17l4 4 4-4M12 12v9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 const UploadCloudIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Path d="M16 16l-4-4-4 4M12 12v9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 const TagIcon = ({ color }: IconProps) => <Svg width={28} height={28} viewBox="0 0 24 24" fill="none"><Path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L3 13V4h9l7.59 7.59a2 2 0 010 2.82z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M7 7h.01" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+// --- AÑADIDO: Ícono para Actualizar Datos ---
+const UserCheckIcon = ({ color }: IconProps) => <Svg width={28} height={28} viewBox="0 0 24 24" fill="none"><Path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Circle cx="8.5" cy="7.5" r="4.5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M17 11l2 2 4-4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 
-
-// --- Componentes de UI ---
 const Clock = ({ styles }: { styles: any }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
@@ -76,7 +72,7 @@ const OfflineDataStatus = ({ status, styles }: { status: string | null, styles: 
     
     let content;
     if (hasData) {
-        const date = new Date(status);
+        const date = new Date(status ?? "");
         const formattedDate = date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const formattedTime = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
         content = `Última actualización: ${formattedDate} a las ${formattedTime} hs.`;
@@ -117,7 +113,6 @@ const ActionCard = ({ icon, title, subtitle, onPress, styles, fullWidth = false 
     </TouchableOpacity>
 );
 
-// --- Pantalla Principal del Inspector ---
 export default function InspectorScreen() {
     const { userSession, signOut } = useAuth();
     const router = useRouter();
@@ -125,7 +120,6 @@ export default function InspectorScreen() {
     const themeColors = { ...Colors[colorScheme], primary: '#0093D2', primaryDark: '#007AB8' };
     const styles = getStyles(themeColors);
     const netInfo = useNetInfo();
-
     const [inspections, setInspections] = useState<Inspection[]>([]);
     const [pendingCount, setPendingCount] = useState(0);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -198,7 +192,6 @@ export default function InspectorScreen() {
 
         const syncPromises = pendingInspections.map(async (inspection) => {
             try {
-                // Esta es una simulación. Aquí iría la lógica para enviar cada inspección a la API.
                 console.log(`Sincronizando inspección: ${inspection.id}`);
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 return { id: inspection.id, success: true };
@@ -230,11 +223,12 @@ export default function InspectorScreen() {
         }
     }, [netInfo.isConnected, pendingCount, isSyncing, onSync]);
 
-    // --- Navegación ---
     const navigateToNewInspection = () => router.push('/(inspector)/nueva-inspeccion' as any);
     const navigateToHistorySearch = () => router.push('/(inspector)/historial' as any);
     const navigateToObleas = () => router.push('/(inspector)/obleas' as any);
     const navigateToReportSending = () => Alert.alert("Próximamente", "Esta función aún no está implementada.");
+    // --- AÑADIDO: Navegación para Actualizar Datos ---
+    const navigateToUpdateData = () => router.push('/(inspector)/gestion-legajo' as any);
 
     return (
         <SafeAreaView style={styles.mainContainer}>
@@ -264,6 +258,14 @@ export default function InspectorScreen() {
                     <ActionCard icon={<FilePlusIcon color={themeColors.primary} />} title="Nueva Inspección" subtitle="Comenzar un formulario" onPress={navigateToNewInspection} styles={styles} />
                     <ActionCard icon={<ClockIcon color={themeColors.primary} />} title="Consultar Historial" subtitle="Ver inspecciones pasadas" onPress={navigateToHistorySearch} styles={styles} />
                     <ActionCard icon={<TagIcon color={themeColors.primary} />} title="Colocar Obleas" subtitle="Marcar obleas entregadas" onPress={navigateToObleas} styles={styles} />
+                    {/* --- AÑADIDO: Nueva tarjeta de acción para Actualizar Datos --- */}
+                    <ActionCard 
+                        icon={<UserCheckIcon color={themeColors.primary} />} 
+                        title="Actualizar Datos" 
+                        subtitle="Editar un legajo existente" 
+                        onPress={navigateToUpdateData} 
+                        styles={styles} 
+                    />
                 </View>
                 
                 <ActionCard icon={<SendIcon color={themeColors.primary} />} title="Envío de Reportes" subtitle="Enviar copia por email" onPress={navigateToReportSending} styles={styles} fullWidth />
@@ -293,7 +295,6 @@ export default function InspectorScreen() {
     );
 }
 
-// --- Estilos Dinámicos ---
 const getStyles = (colors: any) => StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: colors.background },
     container: { paddingVertical: 20, paddingBottom: 40 },

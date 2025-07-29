@@ -27,7 +27,7 @@ function RootLayoutNav() {
             if (userSession.rol === 'admin') {
                 targetDashboard = '/(admin)/dashboard';
             } else if (userSession.rol === 'inspector') {
-                targetDashboard = '/(inspector)/dashboard';
+                targetDashboard = '/(inspector)/inspecciones';
             } else if (userSession.rol === 'contribuyente') {
                 // Asumiendo que el dashboard del contribuyente está en esta ruta
                 targetDashboard = '/(contribuyente)/dashboard';
