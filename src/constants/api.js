@@ -38,6 +38,7 @@ export const API_QR_LOGIN_URL = `${API_V2_BASE_URL}/login_qr.php`;
 // --- Login para Personal Interno ---
 export const API_INTERNAL_LOGIN_URL = `${API_V2_BASE_URL}/login_interno.php`; // Para Admin en la nueva app
 export const API_INSPECTOR_LOGIN_URL = `${API_INSPECCIONES_BASE_URL}/login.php`; // Para Inspectores en el sistema antiguo
+export const API_INSPECCIONES_URL = `${API_INSPECCIONES_BASE_URL}/get_turnos_pendientes.php`; // Para la lista de trámites de los inspectores
 
 
 // =================================================================

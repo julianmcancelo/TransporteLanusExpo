@@ -5,15 +5,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, LayoutAnimation, Platform, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Animated, Easing, LayoutAnimation, Platform, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme, UIManager } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { API_TRAMITES_URL } from '@/constants/api';
+import { API_INSPECCIONES_URL } from '@/constants/api';
 import { Colors } from '@/constants/Colors';
+import type { Vehiculo } from '../../src/types/habilitacion';
 
 // --- Configuración de Animación para Android ---
-if (Platform.OS === 'android' && require('react-native').UIManager.setLayoutAnimationEnabledExperimental) {
-    require('react-native').UIManager.setLayoutAnimationEnabledExperimental(true);
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 // --- Tipos ---
@@ -25,7 +26,6 @@ interface Habilitacion {
     expte: string;
 }
 interface Titular { nombre: string; dni: string; }
-import type { Vehiculo } from '../../src/types/habilitacion';
 interface Turno { fecha: string; hora: string; estado: string; }
 interface Tramite {
     habilitacion: Habilitacion;
@@ -175,7 +175,7 @@ export default function SelectInspectionScreen() {
         setError(null);
         setDataSource(null);
         try {
-            const response = await fetch(API_TRAMITES_URL, {
+            const response = await fetch(API_INSPECCIONES_URL, {
                 cache: 'no-cache',
                 headers: {
                     'Cache-Control': 'no-cache',
@@ -205,6 +205,7 @@ export default function SelectInspectionScreen() {
                     setError(e.message);
                 }
             } catch (cacheError: any) {
+                console.error("Cache Read Error:", cacheError);
                 setError("Error de red y no se pudo leer el caché local.");
             }
         } finally {

@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StatusBar, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 // --- Iconos SVG ---
@@ -79,7 +79,7 @@ const getStyles = () => StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: '#F1F5F9' },
     header: {
         paddingHorizontal: 24,
-        paddingTop: 70,
+        paddingTop: (Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0) + 30,
         paddingBottom: 30,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,

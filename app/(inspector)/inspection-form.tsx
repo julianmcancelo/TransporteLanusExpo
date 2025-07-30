@@ -11,13 +11,14 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, LayoutAnimation, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, LayoutAnimation, Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
 import SignatureScreen, { type SignatureViewRef } from 'react-native-signature-canvas';
 import { Circle, Path, Svg } from 'react-native-svg';
 
-import { API_GUARDAR_URL } from '@/constants/api';
+import { API_SAVE_INSPECTION_URL } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { createInitialItems, groupItemsByCategory } from './InspectionConfig';
+import type { Vehiculo } from '../../src/types/habilitacion';
 
 // Habilitar LayoutAnimation en Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -48,7 +49,6 @@ interface Photo extends ImagePickerAsset { location: LocationData | null; }
 interface InspectionItem { id: string; nombre: string; categoria: string; estado: 'bien' | 'regular' | 'mal' | null; observacion: string; foto: Photo | null; }
 interface Habilitacion { id: string; nro_licencia: string; tipo_transporte: string; }
 interface Titular { nombre: string; dni: string; email?: string; }
-import type { Vehiculo } from '../../src/types/habilitacion';
 interface Tramite { habilitacion: Habilitacion; titular: Titular | null; vehiculo: Vehiculo | null; }
 
 const QUEUE_KEY = '@inspeccionQueue';
@@ -264,7 +264,7 @@ const InspectionFormScreen = () => {
 
         if (netInfo.isConnected) { 
             try { 
-                const response = await fetch(API_GUARDAR_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); 
+                const response = await fetch(API_SAVE_INSPECTION_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); 
                 
                 const responseText = await response.text(); // Leer como texto para depurar
                 console.log("Respuesta cruda del servidor:", responseText);
@@ -545,7 +545,11 @@ const InspectionFormScreen = () => {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: Theme.background },
-    container: { flex: 1, paddingHorizontal: 15 },
+    container: { 
+        flex: 1, 
+        paddingHorizontal: 15,
+        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0
+    },
     mainTitle: { fontSize: 28, fontWeight: 'bold', color: Theme.text, textAlign: 'center', marginTop: 10 },
     subtitle: { fontSize: 16, color: Theme.textSecondary, textAlign: 'center', marginBottom: 25 },
     progressContainer: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 25, paddingHorizontal: 10 },

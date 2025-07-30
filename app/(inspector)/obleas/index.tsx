@@ -95,6 +95,7 @@ const AnimatedGridItem = ({ item, index, onPress }: { item: ObleaPendiente, inde
         try {
             await Linking.openURL(url);
         } catch (e) {
+        console.error('Error:', e);
             Alert.alert("Error", "No se pudo abrir WhatsApp. Verifique que esté instalado.");
         }
     };
@@ -213,6 +214,7 @@ export default function ListaObleasScreen() {
             const data: ObleaPendiente[] = await response.json();
             setPendientes(data);
         } catch (e) {
+        console.error('Error:', e);
             setError(`No se pudo cargar la lista.`);
             setPendientes([]);
         } finally {

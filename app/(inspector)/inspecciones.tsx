@@ -3,7 +3,7 @@ import { NetInfoState, useNetInfo } from '@react-native-community/netinfo';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, LayoutAnimation, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, LayoutAnimation, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, UIManager, View, useColorScheme } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Colors } from '@/constants/Colors';
@@ -195,7 +195,7 @@ export default function InspectorScreen() {
                 console.log(`Sincronizando inspección: ${inspection.id}`);
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 return { id: inspection.id, success: true };
-            } catch (error) {
+            } catch (_error) {
                 return { id: inspection.id, success: false };
             }
         });
@@ -298,7 +298,7 @@ export default function InspectorScreen() {
 const getStyles = (colors: any) => StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: colors.background },
     container: { paddingVertical: 20, paddingBottom: 40 },
-    appHeader: { paddingTop: Platform.OS === 'ios' ? 50 : 40, paddingBottom: 20, paddingHorizontal: 24 },
+    appHeader: { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 20 : 50, paddingBottom: 20, paddingHorizontal: 24 },
     headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     welcomeTitle: { fontSize: 28, fontWeight: 'bold', color: colors.textLight },
     headerButton: { marginLeft: 16, padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 99 },
