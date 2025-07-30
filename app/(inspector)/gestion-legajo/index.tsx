@@ -333,8 +333,8 @@ export default function GestionLegajoScreen() {
                 );
             default: return null;
         }
-    };
-    
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -373,6 +373,8 @@ export default function GestionLegajoScreen() {
     );
 }
 
+
+
 const getStyles = (themeColors: ThemeColors) => StyleSheet.create({
     container: { flex: 1, backgroundColor: themeColors.background },
     header: { paddingTop: Platform.OS === 'android' ? 40: 60, paddingBottom: 20, paddingHorizontal: 20, backgroundColor: themeColors.primary, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -401,12 +403,13 @@ const getStyles = (themeColors: ThemeColors) => StyleSheet.create({
     saveButtonText: { color: themeColors.white, fontSize: 16, fontWeight: 'bold' },
     backButton: { flex: 1, backgroundColor: themeColors.border, padding: 15, borderRadius: 12, alignItems: 'center' },
     backButtonText: { color: themeColors.text, fontSize: 16, fontWeight: 'bold' },
-    imageContainer: { marginBottom: 20, borderRadius: 12, overflow: 'hidden' },
-    previewImage: { height: 200, backgroundColor: themeColors.border, resizeMode: 'contain' },
-    imageOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', gap: 8 },
-    imageOverlayText: { color: themeColors.white, fontWeight: 'bold', fontSize: 16 },
-    sectionTitle: { fontSize: 16, fontWeight: '600', color: themeColors.textSecondary, marginTop: 10, marginBottom: 15, paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+    imageContainer: { height: 200, width: '100%', backgroundColor: themeColors.border, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
+    previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+    imageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+    imageOverlayText: { color: themeColors.white, marginTop: 5, fontWeight: 'bold' },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: themeColors.text, marginTop: 20, marginBottom: 15, borderBottomWidth: 1, borderBottomColor: themeColors.border, paddingBottom: 5 },
     pickerContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+
     label: { fontSize: 16, color: themeColors.textSecondary, marginRight: 10, fontWeight: '500' },
     pickerButton: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, borderWidth: 1, borderColor: themeColors.border, marginRight: 10, backgroundColor: themeColors.background },
     pickerButtonSelected: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },

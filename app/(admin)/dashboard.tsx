@@ -5,10 +5,13 @@ import { Stack, router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
     ActivityIndicator,
+    LayoutAnimation,
+    Platform,
     Pressable,
     StyleSheet,
     Text,
     TouchableOpacity,
+    UIManager,
     View,
 } from 'react-native';
 import Reanimated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
@@ -21,17 +24,24 @@ import { Habilitacion } from '../../src/types/habilitacion';
 
 // --- Paleta de Colores para el Nuevo Diseño ---
 const theme = {
-    background: '#F0F2F5', // Un gris azulado muy claro
+    background: '#F8FAFC', // Un fondo casi blanco para que resalten las tarjetas
     card: '#FFFFFF',
-    textPrimary: '#1E293B',
-    textSecondary: '#64748B',
-    primary: '#0EA5E9', // Celeste
+    textPrimary: '#0F172A', // Un gris oscuro, casi negro
+    textSecondary: '#64748B', // Gris medio para subtítulos
+    primary: '#0EA5E9', // Celeste vibrante (sky-500)
+    primaryDark: '#0284C7', // Celeste más oscuro (sky-600)
+    accent: '#E0F2FE', // Un celeste muy claro para fondos de íconos (sky-100)
     border: '#E2E8F0',
     success: '#10B981',
     warning: '#F59E0B',
     error: '#EF4444',
-    skeleton: '#E5E7EB',
+    skeleton: '#F1F5F9',
 };
+
+// Activar LayoutAnimation para Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // --- Helpers & Funciones de Estilo ---
 const getStatusStyle = (estado: string) => {
@@ -54,8 +64,8 @@ const StatsCard = ({ icon, label, count, color }: {
     color: string;
 }) => (
     <View style={styles.statsCard}>
-        <View style={[styles.statsIconContainer, { backgroundColor: `${color}20` }]}>
-            <MaterialCommunityIcons name={icon} size={24} color={color} />
+        <View style={[styles.statsIconContainer, { backgroundColor: color }]}>
+            <MaterialCommunityIcons name={icon} size={24} color={'#FFFFFF'} />
         </View>
         <Text style={styles.statsCount}>{count}</Text>
         <Text style={styles.statsLabel}>{label}</Text>
@@ -94,25 +104,27 @@ const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
         });
     };
 
+    // CORRECCIÓN: Se elimina el Reanimated.View con sharedTransitionTag que causaba el freeze.
     return (
-        <Reanimated.View sharedTransitionTag={`item.${item.habilitacion_id}.card`}>
-            <Pressable onPress={handlePress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-                <View style={[styles.cardBorder, { backgroundColor: status.color }]} />
-                <View style={styles.cardContent}>
-                    <View style={styles.cardTextContainer}>
-                        <View style={styles.cardTitleContainer}>
-                            <MaterialCommunityIcons name={typeIcon} size={18} color={theme.textSecondary} />
-                            <Text style={styles.cardTitle}>{item.nro_licencia}</Text>
-                        </View>
+        <Pressable onPress={handlePress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+            <View style={[styles.cardBorder, { backgroundColor: status.color }]} />
+            <View style={styles.cardContent}>
+                <View style={styles.cardIconType}>
+                    <MaterialCommunityIcons name={typeIcon} size={22} color={theme.primary} />
+                </View>
+                <View style={styles.cardTextContainer}>
+                    <Text style={styles.cardTitle}>{item.nro_licencia}</Text>
+                    <View style={styles.cardSubtitleContainer}>
+                        <MaterialCommunityIcons name="account-circle-outline" size={16} color={theme.textSecondary} />
                         <Text style={styles.cardSubtitle} numberOfLines={1}>{item.titular_principal || `Exp: ${item.expte}`}</Text>
                     </View>
-                    <View style={[styles.statusBadge, { backgroundColor: status.backgroundColor }]}>
-                        <MaterialCommunityIcons name={status.icon as any} size={14} color={status.color} />
-                        <Text style={[styles.statusText, { color: status.color }]}>{item.estado}</Text>
-                    </View>
                 </View>
-            </Pressable>
-        </Reanimated.View>
+                <View style={[styles.statusBadge, { backgroundColor: status.backgroundColor }]}>
+                    <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+                    <Text style={[styles.statusText, { color: status.color }]}>{item.estado}</Text>
+                </View>
+            </View>
+        </Pressable>
     );
 };
 
@@ -125,7 +137,7 @@ const CustomSegmentedButtons = ({ value, onValueChange }: { value: string; onVal
         <View style={styles.segmentedContainer}>
             {buttons.map(button => (
                 <TouchableOpacity key={button.value} style={[styles.segmentedButton, value === button.value && styles.segmentedButtonActive]} onPress={() => onValueChange(button.value as 'Escolar' | 'Remis')} activeOpacity={0.8}>
-                    <MaterialCommunityIcons name={button.icon as any} size={20} color={value === button.value ? theme.primary : theme.textSecondary}/>
+                    <MaterialCommunityIcons name={button.icon as any} size={20} color={value === button.value ? theme.primaryDark : theme.textSecondary}/>
                     <Text style={[styles.segmentedButtonText, value === button.value && styles.segmentedButtonTextActive]}>{button.label}</Text>
                 </TouchableOpacity>
             ))}
@@ -184,6 +196,7 @@ export default function AdminDashboard() {
     });
 
     const onSegmentChange = (value: 'Escolar' | 'Remis') => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         Haptics.selectionAsync();
         setTipoTransporte(value);
     };
@@ -252,88 +265,101 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         backgroundColor: theme.card,
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 16,
         shadowColor: "#94A3B8",
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowRadius: 10,
+        elevation: 5,
     },
     statsIconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
     },
-    statsCount: { fontSize: 24, fontWeight: 'bold', color: theme.textPrimary },
-    statsLabel: { fontSize: 12, color: theme.textSecondary, fontWeight: '500' },
+    statsCount: { fontSize: 28, fontWeight: 'bold', color: theme.textPrimary },
+    statsLabel: { fontSize: 13, color: theme.textSecondary, fontWeight: '600' },
 
     segmentedContainer: {
         flexDirection: 'row',
         backgroundColor: '#E2E8F0',
-        borderRadius: 12,
-        padding: 4,
+        borderRadius: 16,
+        padding: 6,
     },
     segmentedButton: {
         flex: 1,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 10,
-        borderRadius: 9,
+        paddingVertical: 12,
+        borderRadius: 12,
     },
     segmentedButtonActive: {
         backgroundColor: theme.card,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    segmentedButtonText: { fontSize: 15, fontWeight: '600', color: theme.textSecondary, marginLeft: 8 },
-    segmentedButtonTextActive: { color: theme.primary },
+    segmentedButtonText: { fontSize: 15, fontWeight: 'bold', color: theme.textSecondary, marginLeft: 8 },
+    segmentedButtonTextActive: { color: theme.primaryDark },
     
     card: {
         backgroundColor: theme.card,
         borderRadius: 16,
         shadowColor: '#94A3B8',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07,
+        shadowRadius: 10,
         elevation: 3,
         marginHorizontal: 20,
     },
     cardPressed: {
         transform: [{ scale: 0.98 }],
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.02,
     },
     cardBorder: {
         position: 'absolute',
         left: 0,
-        top: 12,
-        bottom: 12,
-        width: 5,
-        borderTopRightRadius: 4,
-        borderBottomRightRadius: 4,
+        top: 0,
+        bottom: 0,
+        width: 6,
+        borderTopLeftRadius: 16,
+        borderBottomLeftRadius: 16,
     },
     cardContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 16,
-        paddingLeft: 20,
-        paddingRight: 12,
+        padding: 16,
+        paddingLeft: 12,
+    },
+    cardIconType: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: theme.accent,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
     },
     cardTextContainer: { flex: 1, marginRight: 10 },
-    cardTitleContainer: {
+    cardTitle: { fontSize: 18, fontWeight: 'bold', color: theme.textPrimary },
+    cardSubtitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 4,
+        marginTop: 4,
     },
-    cardTitle: { fontSize: 17, fontWeight: 'bold', color: theme.textPrimary, marginLeft: 8 },
-    cardSubtitle: { fontSize: 14, color: theme.textSecondary, marginLeft: 26 },
+    cardSubtitle: { fontSize: 14, color: theme.textSecondary, marginLeft: 6 },
 
     statusBadge: {
         flexDirection: 'row',
@@ -341,6 +367,11 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 10,
         borderRadius: 999,
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
     },
     statusText: { marginLeft: 6, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 },
 
