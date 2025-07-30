@@ -1,5 +1,3 @@
-// app/(admin)/dashboard.tsx
-
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -15,26 +13,40 @@ import {
 } from 'react-native';
 import Reanimated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
-
-import { DynamicHeader } from '../../src/components/DynamicHeader';
+// --- Componentes y Servicios ---
+import { DynamicHeader } from '../../src/components/DynamicHeader'; // Asumimos que este componente ya existe
 import { useAuth } from '../../src/contexts/AuthContext';
 import * as api from '../../src/services/api';
 import { Habilitacion } from '../../src/types/habilitacion';
 
+// --- Paleta de Colores para el Nuevo Diseño ---
+const theme = {
+    background: '#F0F2F5', // Un gris azulado muy claro
+    card: '#FFFFFF',
+    textPrimary: '#1E293B',
+    textSecondary: '#64748B',
+    primary: '#0EA5E9', // Celeste
+    border: '#E2E8F0',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    skeleton: '#E5E7EB',
+};
 
 // --- Helpers & Funciones de Estilo ---
 const getStatusStyle = (estado: string) => {
     switch (estado) {
         case 'HABILITADO':
-            return { icon: 'check-circle', color: '#16a34a', backgroundColor: '#f0fdf4' };
+            return { icon: 'check-circle', color: theme.success, backgroundColor: '#ECFDF5' };
         case 'EN TRAMITE':
-            return { icon: 'clock-outline', color: '#f59e0b', backgroundColor: '#fefce8' };
+            return { icon: 'clock-fast', color: theme.warning, backgroundColor: '#FFFBEB' };
         default:
-            return { icon: 'alert-circle', color: '#dc2626', backgroundColor: '#fef2f2' };
+            return { icon: 'alert-circle', color: theme.error, backgroundColor: '#FEF2F2' };
     }
 };
 
-// --- Componentes de UI ---
+// --- Componentes de UI Rediseñados ---
+
 const StatsCard = ({ icon, label, count, color }: {
     icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
     label: string;
@@ -43,7 +55,7 @@ const StatsCard = ({ icon, label, count, color }: {
 }) => (
     <View style={styles.statsCard}>
         <View style={[styles.statsIconContainer, { backgroundColor: `${color}20` }]}>
-            <MaterialCommunityIcons name={icon} size={22} color={color} />
+            <MaterialCommunityIcons name={icon} size={24} color={color} />
         </View>
         <Text style={styles.statsCount}>{count}</Text>
         <Text style={styles.statsLabel}>{label}</Text>
@@ -53,7 +65,7 @@ const StatsCard = ({ icon, label, count, color }: {
 const HabilitacionesSummary = ({ data }: { data: Habilitacion[] | undefined }) => {
     const summary = useMemo(() => {
         const initialValue = { habilitado: 0, tramite: 0, vencido: 0 };
-        return (data || []).reduce((acc: typeof initialValue, item: Habilitacion) => {
+        return (data || []).reduce((acc, item) => {
             if (item.estado === 'HABILITADO') acc.habilitado++;
             else if (item.estado === 'EN TRAMITE') acc.tramite++;
             else acc.vencido++;
@@ -63,17 +75,16 @@ const HabilitacionesSummary = ({ data }: { data: Habilitacion[] | undefined }) =
 
     return (
         <View style={styles.summaryContainer}>
-            <StatsCard icon="check-circle" label="Habilitados" count={summary.habilitado} color="#16a34a" />
-            <StatsCard icon="clock-outline" label="En Trámite" count={summary.tramite} color="#f59e0b" />
-            <StatsCard icon="alert-circle" label="Vencidos" count={summary.vencido} color="#dc2626" />
+            <StatsCard icon="check-circle-outline" label="Habilitados" count={summary.habilitado} color={theme.success} />
+            <StatsCard icon="clock-outline" label="En Trámite" count={summary.tramite} color={theme.warning} />
+            <StatsCard icon="close-circle-outline" label="Vencidos" count={summary.vencido} color={theme.error} />
         </View>
     );
 };
 
-
 const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
     const status = getStatusStyle(item.estado);
-    const typeIcon = item.tipo === 'Remis' ? 'taxi' : 'bus-school';
+    const typeIcon = item.tipo_transporte === 'Remis' ? 'taxi' : 'bus-school';
 
     const handlePress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -90,7 +101,7 @@ const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
                 <View style={styles.cardContent}>
                     <View style={styles.cardTextContainer}>
                         <View style={styles.cardTitleContainer}>
-                            <MaterialCommunityIcons name={typeIcon} size={16} color={styles.cardTitle.color} />
+                            <MaterialCommunityIcons name={typeIcon} size={18} color={theme.textSecondary} />
                             <Text style={styles.cardTitle}>{item.nro_licencia}</Text>
                         </View>
                         <Text style={styles.cardSubtitle} numberOfLines={1}>{item.titular_principal || `Exp: ${item.expte}`}</Text>
@@ -113,8 +124,8 @@ const CustomSegmentedButtons = ({ value, onValueChange }: { value: string; onVal
     return (
         <View style={styles.segmentedContainer}>
             {buttons.map(button => (
-                <TouchableOpacity key={button.value} style={[styles.segmentedButton, value === button.value && styles.segmentedButtonActive]} onPress={() => onValueChange(button.value as 'Escolar' | 'Remis')} activeOpacity={0.7}>
-                    <MaterialCommunityIcons name={button.icon as any} size={20} color={value === button.value ? '#1F2937' : '#4B5563'}/>
+                <TouchableOpacity key={button.value} style={[styles.segmentedButton, value === button.value && styles.segmentedButtonActive]} onPress={() => onValueChange(button.value as 'Escolar' | 'Remis')} activeOpacity={0.8}>
+                    <MaterialCommunityIcons name={button.icon as any} size={20} color={value === button.value ? theme.primary : theme.textSecondary}/>
                     <Text style={[styles.segmentedButtonText, value === button.value && styles.segmentedButtonTextActive]}>{button.label}</Text>
                 </TouchableOpacity>
             ))}
@@ -125,7 +136,7 @@ const CustomSegmentedButtons = ({ value, onValueChange }: { value: string; onVal
 const SkeletonRow = () => {
     return (
         <View style={[styles.card, { backgroundColor: '#FFFFFF' }]}>
-             <View style={[styles.cardBorder, { backgroundColor: '#E0E0E0' }]} />
+             <View style={[styles.cardBorder, { backgroundColor: theme.skeleton }]} />
             <View style={styles.cardContent}>
                 <View style={styles.cardTextContainer}>
                     <View style={[styles.skeletonLine, { width: '50%', height: 20, marginBottom: 8 }]} />
@@ -148,7 +159,7 @@ const SkeletonLoader = () => (
 const EmptyListComponent = () => {
     return (
         <View style={styles.centerContainer}>
-            <MaterialCommunityIcons name="folder-search-outline" size={64} color="#9E9E9E" />
+            <MaterialCommunityIcons name="folder-search-outline" size={64} color="#CBD5E1" />
             <Text style={styles.emptyText}>No se encontraron habilitaciones</Text>
             <Text style={styles.emptySubtitle}>Intenta ajustar tu búsqueda o los filtros.</Text>
         </View>
@@ -161,7 +172,6 @@ export default function AdminDashboard() {
     const [tipoTransporte, setTipoTransporte] = useState<'Escolar' | 'Remis'>('Escolar');
     const [searchQuery, setSearchQuery] = useState('');
 
-    // ✨ CORRECCIÓN APLICADA AQUÍ ✨
     const scrollY = useSharedValue(0);
 
     const { data: habilitaciones, isLoading, error, isFetching } = useQuery({
@@ -208,7 +218,7 @@ export default function AdminDashboard() {
                     <View style={styles.listHeaderContainer}>
                         <HabilitacionesSummary data={habilitaciones} />
                         <CustomSegmentedButtons value={tipoTransporte} onValueChange={onSegmentChange} />
-                        {isFetching && !isLoading && <ActivityIndicator style={{ marginVertical: 10 }} color="#111827" />}
+                        {isFetching && !isLoading && <ActivityIndicator style={{ marginVertical: 10 }} color={theme.primary} />}
                         {isLoading && <SkeletonLoader />}
                     </View>
                 }
@@ -222,9 +232,9 @@ export default function AdminDashboard() {
 
 // --- Hoja de Estilos ---
 const styles = StyleSheet.create({
-    flexOne: { flex: 1, backgroundColor: '#F3F4F6' },
-    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#F3F4F6' },
-    errorText: { color: '#B71C1C', fontSize: 16, fontWeight: 'bold' },
+    flexOne: { flex: 1, backgroundColor: theme.background },
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: theme.background },
+    errorText: { color: theme.error, fontSize: 16, fontWeight: 'bold' },
     
     listHeaderContainer: {
         paddingHorizontal: 20,
@@ -241,29 +251,29 @@ const styles = StyleSheet.create({
     statsCard: {
         flex: 1,
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.card,
         borderRadius: 16,
         padding: 16,
-        shadowColor: "#000",
+        shadowColor: "#94A3B8",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
     },
     statsIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 8,
     },
-    statsCount: { fontSize: 22, fontWeight: 'bold', color: '#1F2937' },
-    statsLabel: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
+    statsCount: { fontSize: 24, fontWeight: 'bold', color: theme.textPrimary },
+    statsLabel: { fontSize: 12, color: theme.textSecondary, fontWeight: '500' },
 
     segmentedContainer: {
         flexDirection: 'row',
-        backgroundColor: '#E5E7EB',
+        backgroundColor: '#E2E8F0',
         borderRadius: 12,
         padding: 4,
     },
@@ -276,29 +286,29 @@ const styles = StyleSheet.create({
         borderRadius: 9,
     },
     segmentedButtonActive: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.card,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.1,
         shadowRadius: 2,
-        elevation: 3,
+        elevation: 2,
     },
-    segmentedButtonText: { fontSize: 15, fontWeight: '600', color: '#4B5563', marginLeft: 8 },
-    segmentedButtonTextActive: { color: '#1F2937' },
+    segmentedButtonText: { fontSize: 15, fontWeight: '600', color: theme.textSecondary, marginLeft: 8 },
+    segmentedButtonTextActive: { color: theme.primary },
     
     card: {
-        backgroundColor: 'white',
+        backgroundColor: theme.card,
         borderRadius: 16,
-        shadowColor: '#9CA3AF',
+        shadowColor: '#94A3B8',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.1,
         shadowRadius: 12,
-        elevation: 5,
+        elevation: 3,
         marginHorizontal: 20,
     },
     cardPressed: {
         transform: [{ scale: 0.98 }],
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
     },
     cardBorder: {
         position: 'absolute',
@@ -322,8 +332,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 4,
     },
-    cardTitle: { fontSize: 17, fontWeight: 'bold', color: '#111827', marginLeft: 8 },
-    cardSubtitle: { fontSize: 14, color: '#4B5563', marginLeft: 29 },
+    cardTitle: { fontSize: 17, fontWeight: 'bold', color: theme.textPrimary, marginLeft: 8 },
+    cardSubtitle: { fontSize: 14, color: theme.textSecondary, marginLeft: 26 },
 
     statusBadge: {
         flexDirection: 'row',
@@ -334,8 +344,8 @@ const styles = StyleSheet.create({
     },
     statusText: { marginLeft: 6, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 },
 
-    skeletonLine: { backgroundColor: '#E5E7EB', borderRadius: 4 },
+    skeletonLine: { backgroundColor: theme.skeleton, borderRadius: 4 },
 
-    emptyText: { color: '#4B5563', fontSize: 18, fontWeight: '600', marginTop: 16 },
-    emptySubtitle: { color: '#6B7280', fontSize: 14, marginTop: 4, textAlign: 'center' },
+    emptyText: { color: theme.textPrimary, fontSize: 18, fontWeight: '600', marginTop: 16 },
+    emptySubtitle: { color: theme.textSecondary, fontSize: 14, marginTop: 4, textAlign: 'center' },
 });

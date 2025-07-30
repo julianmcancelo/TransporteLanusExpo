@@ -6,25 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Animated, FlatList, Linking, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-// --- Paleta de Colores y Tema Refinado ---
-const theme = {
-    background: '#F1F5F9',
-    card: '#FFFFFF',
-    cardGradient: ['#FFFFFF', '#FDFDFD'] as const,
-    textPrimary: '#0F172A',
-    textSecondary: '#64748B',
-    primary: '#0093D2',
-    primaryDark: '#0284C7',
-    accent: '#E0F2FE',
-    error: '#EF4444',
-    white: '#FFFFFF',
-    shadow: 'rgba(52, 84, 122, 0.2)',
-    plateBackground: '#F8FAFC',
-    plateBorder: '#E2E8F0',
-    skeleton: '#E2E8F0',
-    success: '#10B981', // Color para WhatsApp
-    disabled: '#9CA3AF', // Color para botones deshabilitados
-};
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 // --- Iconos ---
 const ArrowLeftIcon = ({ c, s = 28 }: { c: string, s?: number }) => <Svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M19 12H5M12 19l-7-7 7-7" /></Svg>;
@@ -45,11 +27,11 @@ interface ObleaPendiente {
 }
 
 // --- Lógica de Contenido Inteligente ---
-const getVehicleInfo = (licencia: string, dominio: string) => {
+const getVehicleInfo = (licencia: string, dominio: string, themeColors: any) => {
     const upperLic = licencia.toUpperCase();
-    let vehicleType = { type: 'Vehículo', icon: <CarIcon c={theme.primaryDark} /> };
-    if (upperLic.includes('REM')) vehicleType = { type: 'Remis', icon: <CarIcon c={theme.primaryDark} /> };
-    if (upperLic.includes('TRA')) vehicleType = { type: 'Transporte', icon: <VanIcon c={theme.primaryDark} /> };
+    let vehicleType = { type: 'Vehículo', icon: <CarIcon c={themeColors.primaryDark} /> };
+    if (upperLic.includes('REM')) vehicleType = { type: 'Remis', icon: <CarIcon c={themeColors.primaryDark} /> };
+    if (upperLic.includes('TRA')) vehicleType = { type: 'Transporte', icon: <VanIcon c={themeColors.primaryDark} /> };
     let formattedDominio = (dominio || 'S/D').toUpperCase();
     if (formattedDominio.length === 7) {
         formattedDominio = `${dominio.slice(0, 2)} ${dominio.slice(2, 5)} ${dominio.slice(5, 7)}`;
@@ -58,9 +40,9 @@ const getVehicleInfo = (licencia: string, dominio: string) => {
 };
 
 // --- Componentes de UI ---
-const AnimatedGridItem = ({ item, index, onPress }: { item: ObleaPendiente, index: number, onPress: () => void }) => {
-    const styles = getStyles();
-    const { type, icon, formattedDominio } = getVehicleInfo(item.nro_licencia, item.dominio);
+const AnimatedGridItem = ({ item, index, onPress, themeColors }: { item: ObleaPendiente, index: number, onPress: () => void, themeColors: any }) => {
+    const styles = getStyles(themeColors);
+    const { type, icon, formattedDominio } = getVehicleInfo(item.nro_licencia, item.dominio, themeColors);
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -102,7 +84,7 @@ const AnimatedGridItem = ({ item, index, onPress }: { item: ObleaPendiente, inde
 
     return (
         <Animated.View style={[styles.gridItem, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-            <LinearGradient colors={theme.cardGradient} style={styles.card}>
+            <LinearGradient colors={themeColors.colorScheme === 'dark' ? [themeColors.cardBackground, themeColors.cardBackground] : ['#FFFFFF', '#FDFDFD']} style={styles.card}>
                 <Pressable onPress={handleCardPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
                     <View style={styles.cardHeader}>
                         {icon}
@@ -124,7 +106,7 @@ const AnimatedGridItem = ({ item, index, onPress }: { item: ObleaPendiente, inde
                         disabled={!item.telefono}
                         activeOpacity={0.7}
                     >
-                        <WhatsAppIcon c={theme.white} s={16} />
+                        <WhatsAppIcon c={themeColors.white} s={16} />
                         <Text style={styles.whatsappButtonText}>Contactar</Text>
                     </TouchableOpacity>
                 </View>
@@ -133,8 +115,8 @@ const AnimatedGridItem = ({ item, index, onPress }: { item: ObleaPendiente, inde
     );
 };
 
-const StatusMessage = ({ icon, title, subtitle }: { icon: React.ReactNode, title: string, subtitle: string }) => {
-    const styles = getStyles();
+const StatusMessage = ({ icon, title, subtitle, themeColors }: { icon: React.ReactNode, title: string, subtitle: string, themeColors: any }) => {
+    const styles = getStyles(themeColors);
     return (
         <View style={styles.centeredMessage}>
             <View style={styles.statusContainer}>
@@ -146,8 +128,8 @@ const StatusMessage = ({ icon, title, subtitle }: { icon: React.ReactNode, title
     );
 };
 
-const SkeletonGridItem = ({ index }: { index: number }) => {
-    const styles = getStyles();
+const SkeletonGridItem = ({ index, themeColors }: { index: number, themeColors: any }) => {
+    const styles = getStyles(themeColors);
     const shimmerAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -168,7 +150,7 @@ const SkeletonGridItem = ({ index }: { index: number }) => {
 
     return (
         <View style={styles.gridItem}>
-            <View style={[styles.card, { backgroundColor: theme.card, shadowOpacity: 0.1, elevation: 2 }]}>
+            <View style={[styles.card, { backgroundColor: themeColors.cardBackground, shadowOpacity: 0.1, elevation: 2 }]}>
                 <View style={[styles.skeletonBox, { width: "50%", height: 22, marginBottom: 16 }]} />
                 <View style={[styles.skeletonBox, { width: "100%", height: 45, marginBottom: 16 }]} />
                 <View style={[styles.skeletonBox, { width: "80%", height: 20, marginBottom: 6 }]} />
@@ -188,7 +170,8 @@ const SkeletonGridItem = ({ index }: { index: number }) => {
 // --- Pantalla Principal ---
 export default function ListaObleasScreen() {
     const router = useRouter();
-    const styles = getStyles();
+    const themeColors = useThemeColors();
+    const styles = getStyles(themeColors);
     const netInfo = useNetInfo();
     const [pendientes, setPendientes] = useState<ObleaPendiente[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -245,21 +228,21 @@ export default function ListaObleasScreen() {
                 <FlatList
                     data={Array.from({ length: 6 })}
                     numColumns={2}
-                    renderItem={({ index }) => <SkeletonGridItem index={index} />}
+                    renderItem={({ index }) => <SkeletonGridItem index={index} themeColors={themeColors} />}
                     keyExtractor={(_, index) => index.toString()}
                     contentContainerStyle={styles.gridContainer}
                 />
             );
         }
-        if (error) return <StatusMessage icon={<WifiOffIcon c={theme.error} />} title="Error de Conexión" subtitle={error} />;
-        if (pendientes.length === 0) return <StatusMessage icon={<TagIcon c={theme.textSecondary} />} title="¡Todo al día!" subtitle="No hay obleas pendientes." />;
-        if (filteredPendientes.length === 0) return <StatusMessage icon={<SearchIcon c={theme.textSecondary} s={48}/>} title="Sin resultados" subtitle={`No se encontraron habilitaciones para "${searchQuery}"`} />;
+        if (error) return <StatusMessage icon={<WifiOffIcon c={themeColors.error} />} title="Error de Conexión" subtitle={error} themeColors={themeColors} />;
+        if (pendientes.length === 0) return <StatusMessage icon={<TagIcon c={themeColors.textSecondary} />} title="¡Todo al día!" subtitle="No hay obleas pendientes." themeColors={themeColors} />;
+        if (filteredPendientes.length === 0) return <StatusMessage icon={<SearchIcon c={themeColors.textSecondary} s={48}/>} title="Sin resultados" subtitle={`No se encontraron habilitaciones para "${searchQuery}"`} themeColors={themeColors} />;
 
         return (
             <FlatList
                 data={filteredPendientes}
                 numColumns={2}
-                renderItem={({ item, index }) => <AnimatedGridItem item={item} index={index} onPress={() => router.push(`/(inspector)/obleas/${item.id}` as any)} />}
+                renderItem={({ item, index }) => <AnimatedGridItem item={item} index={index} onPress={() => router.push(`/(inspector)/obleas/${item.id}` as any)} themeColors={themeColors} />}
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={styles.gridContainer}
                 onRefresh={fetchObleasPendientes}
@@ -270,9 +253,9 @@ export default function ListaObleasScreen() {
 
     return (
         <SafeAreaView style={styles.mainContainer}>
-            <LinearGradient colors={[theme.primary, theme.primaryDark]} style={styles.header}>
+            <LinearGradient colors={[themeColors.primary, themeColors.primaryDark]} style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <ArrowLeftIcon c={theme.white} />
+                    <ArrowLeftIcon c={themeColors.white} />
                 </TouchableOpacity>
                 <View>
                     <Text style={styles.headerTitle}>Colocación de Obleas</Text>
@@ -281,11 +264,11 @@ export default function ListaObleasScreen() {
             </LinearGradient>
             <View style={styles.searchContainer}>
                 <View style={styles.searchInputWrapper}>
-                    <SearchIcon c={theme.textSecondary} />
+                    <SearchIcon c={themeColors.textSecondary} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Buscar por dominio o titular..."
-                        placeholderTextColor={theme.textSecondary}
+                        placeholderTextColor={themeColors.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
@@ -297,8 +280,8 @@ export default function ListaObleasScreen() {
 }
 
 // --- Estilos ---
-const getStyles = () => StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: theme.background },
+const getStyles = (themeColors: any) => StyleSheet.create({
+    mainContainer: { flex: 1, backgroundColor: themeColors.background },
     header: {
         paddingTop: Platform.OS === 'android' ? 40 : 50,
         paddingBottom: 24,
@@ -309,7 +292,7 @@ const getStyles = () => StyleSheet.create({
         alignItems: 'center',
     },
     backButton: { padding: 8, marginRight: 16, marginLeft: -8 },
-    headerTitle: { fontSize: 26, fontWeight: 'bold', color: theme.white },
+    headerTitle: { fontSize: 26, fontWeight: 'bold', color: themeColors.white },
     headerSubtitle: { fontSize: 15, color: 'rgba(255, 255, 255, 0.9)', marginTop: 4 },
     searchContainer: {
         paddingHorizontal: 20,
@@ -319,10 +302,10 @@ const getStyles = () => StyleSheet.create({
     searchInputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.card,
+        backgroundColor: themeColors.cardBackground,
         borderRadius: 16,
         paddingHorizontal: 16,
-        shadowColor: theme.shadow,
+        shadowColor: themeColors.colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -333,30 +316,30 @@ const getStyles = () => StyleSheet.create({
         height: 50,
         paddingLeft: 12,
         fontSize: 16,
-        color: theme.textPrimary,
+        color: themeColors.text,
     },
     centeredMessage: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
-    statusContainer: { backgroundColor: theme.card, borderRadius: 20, padding: 30, alignItems: 'center', shadowColor: theme.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
-    infoText: { fontSize: 18, color: theme.textPrimary, fontWeight: 'bold', marginTop: 16, textAlign: 'center' },
-    infoSubtext: { fontSize: 14, color: theme.textSecondary, textAlign: 'center', marginTop: 6, lineHeight: 20 },
+    statusContainer: { backgroundColor: themeColors.cardBackground, borderRadius: 20, padding: 30, alignItems: 'center', shadowColor: themeColors.colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+    infoText: { fontSize: 18, color: themeColors.text, fontWeight: 'bold', marginTop: 16, textAlign: 'center' },
+    infoSubtext: { fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginTop: 6, lineHeight: 20 },
     gridContainer: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 40 },
     gridItem: { flex: 0.5, padding: 8 },
     card: {
         borderRadius: 24,
-        shadowColor: theme.shadow,
+        shadowColor: themeColors.colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.8,
         shadowRadius: 22,
         elevation: 10,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.7)',
+        borderColor: themeColors.colorScheme === 'dark' ? themeColors.border : 'rgba(255, 255, 255, 0.7)',
         overflow: 'hidden',
     },
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
-        backgroundColor: theme.accent,
+        backgroundColor: themeColors.primaryLight,
         paddingVertical: 5,
         paddingHorizontal: 10,
         borderRadius: 20,
@@ -367,14 +350,14 @@ const getStyles = () => StyleSheet.create({
         marginLeft: 6,
         fontSize: 12,
         fontWeight: 'bold',
-        color: theme.primaryDark
+        color: themeColors.primaryDark
     },
     plateContainer: {
-        backgroundColor: theme.plateBackground,
+        backgroundColor: themeColors.background,
         paddingVertical: 12,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: theme.plateBorder,
+        borderColor: themeColors.border,
         width: 'auto',
         marginHorizontal: 12,
         marginBottom: 12,
@@ -384,7 +367,7 @@ const getStyles = () => StyleSheet.create({
     plateText: {
         fontSize: 22,
         fontWeight: '700',
-        color: theme.textPrimary,
+        color: themeColors.text,
         textAlign: 'center',
         fontFamily: Platform.OS === 'ios' ? 'AvenirNext-CondensedBold' : 'monospace',
         letterSpacing: 1,
@@ -401,40 +384,42 @@ const getStyles = () => StyleSheet.create({
     titularText: {
         fontSize: 15,
         fontWeight: '600',
-        color: theme.textPrimary,
+        color: themeColors.text,
         textAlign: 'center',
         marginBottom: 4,
     },
     licenciaText: {
-        fontSize: 12,
-        color: theme.textSecondary,
+        fontSize: 13,
+        color: themeColors.textSecondary,
+        marginTop: 4,
         textAlign: 'center'
     },
     skeletonBox: {
-        backgroundColor: theme.skeleton,
+        backgroundColor: themeColors.border,
         borderRadius: 8,
         overflow: 'hidden',
     },
     cardActions: {
         padding: 12,
         borderTopWidth: 1,
-        borderTopColor: theme.plateBorder,
+        borderTopColor: themeColors.plateBorder,
     },
     whatsappButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.success,
+        backgroundColor: themeColors.success,
         paddingVertical: 10,
-        borderRadius: 12,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
     },
     disabledButton: {
-        backgroundColor: theme.disabled,
+        backgroundColor: themeColors.textSecondary,
     },
     whatsappButtonText: {
-        color: theme.white,
-        fontSize: 14,
-        fontWeight: 'bold',
+        color: themeColors.white,
         marginLeft: 8,
+        fontWeight: 'bold',
+        fontSize: 14,
     },
 });

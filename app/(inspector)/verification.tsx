@@ -3,12 +3,14 @@
 // Recibe, muestra todos los datos del trámite y navega al formulario.
 // Estética y responsividad mejoradas para una mejor experiencia de usuario.
 // =========================================================================
-import { Colors } from '@/constants/Colors';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Circle, Path, Svg } from 'react-native-svg';
+
+import type { Vehiculo } from '../../src/types/habilitacion';
 
 // --- Tipos de Datos Completos ---
 interface Habilitacion {
@@ -22,7 +24,6 @@ interface Titular {
     nombre: string;
     dni: string;
 }
-import type { Vehiculo } from '../../src/types/habilitacion';
 interface Turno {
     fecha: string;
     hora: string;
@@ -88,13 +89,7 @@ const VerificationScreen = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
     const tramite: Tramite | null = params.tramite ? JSON.parse(params.tramite as string) : null;
-    
-    // --- Paleta de colores "Celeste" ---
-    const themeColors = {
-        ...Colors['light'],
-        primary: '#00AEEF', // Celeste principal
-        primaryDark: '#008ACD', // Celeste oscuro
-    };
+    const themeColors = useThemeColors();
 
     const styles = getStyles(themeColors);
 
@@ -229,7 +224,7 @@ const getStyles = (themeColors: any) => StyleSheet.create({
         color: themeColors.primaryDark,
         paddingHorizontal: 20,
         paddingVertical: 12,
-        backgroundColor: 'rgba(0, 174, 239, 0.05)', // Tono celeste muy claro
+        backgroundColor: themeColors.primaryLight,
     },
     cardContent: {
         padding: 20,
@@ -243,7 +238,7 @@ const getStyles = (themeColors: any) => StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(0, 174, 239, 0.1)', // Tono celeste claro
+        backgroundColor: themeColors.primaryLight,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,

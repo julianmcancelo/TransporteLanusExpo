@@ -17,6 +17,7 @@ import { Circle, Path, Svg } from 'react-native-svg';
 
 import { API_SAVE_INSPECTION_URL } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { createInitialItems, groupItemsByCategory } from './InspectionConfig';
 import type { Vehiculo } from '../../src/types/habilitacion';
 
@@ -25,21 +26,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Paleta de colores "Celeste, Blanco y Negro"
-const Theme = {
-    primary: '#3498db',         // Celeste
-    primaryLight: '#eaf5ff',
-    text: '#2c3e50',            // Negro/Azul Pizarra Oscuro
-    textSecondary: '#8e9eab',    // Gris
-    background: '#ecf0f1',      // Gris muy claro
-    cardBackground: '#ffffff',  // Blanco
-    border: '#dfe6e9',
-    success: '#2ecc71',
-    error: '#e74c3c',
-    warning: '#f39c12',
-    black: '#000000',
-    white: '#ffffff',
-};
+
 
 // --- Definiciones de Tipos ---
 interface UserSession { nombre: string; email: string; rol: 'inspector'; legajo: string; token: string; }
@@ -57,7 +44,8 @@ const savePendingInspections = async (queue: any[]) => { try { await AsyncStorag
 const toLocationData = (loc: Location.LocationObject | null): LocationData | null => loc ? { latitude: loc.coords.latitude, longitude: loc.coords.longitude, timestamp: loc.timestamp } : null;
 
 // --- Componente de Barra de Progreso ---
-const ProgressBar = ({ currentStep, steps }: { currentStep: number, steps: string[] }) => {
+const ProgressBar = ({ currentStep, steps, colors }: { currentStep: number, steps: string[], colors: any }) => {
+    const styles = getStyles(colors);
     return (
         <View style={styles.progressContainer}>
             {steps.map((step, index) => {
@@ -67,16 +55,16 @@ const ProgressBar = ({ currentStep, steps }: { currentStep: number, steps: strin
                 return (
                     <React.Fragment key={step}>
                         <View style={styles.step}>
-                            <View style={[styles.stepCircle, (isActive || isCompleted) && { backgroundColor: Theme.primary, borderColor: Theme.primary }]}>
+                            <View style={[styles.stepCircle, (isActive || isCompleted) && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                                 {isCompleted ? (
-                                    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={Theme.white} strokeWidth={3}><Path d="M20 6L9 17l-5-5" /></Svg>
+                                    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.white} strokeWidth={3}><Path d="M20 6L9 17l-5-5" /></Svg>
                                 ) : (
-                                    <Text style={[styles.stepNumber, (isActive || isCompleted) && { color: Theme.white }]}>{stepNumber}</Text>
+                                    <Text style={[styles.stepNumber, (isActive || isCompleted) && { color: colors.white }]}>{stepNumber}</Text>
                                 )}
                             </View>
-                            <Text style={[styles.stepLabel, isActive && { color: Theme.primary, fontWeight: '700' }]}>{step}</Text>
+                            <Text style={[styles.stepLabel, isActive && { color: colors.primary, fontWeight: '700' }]}>{step}</Text>
                         </View>
-                        {stepNumber < steps.length && <View style={[styles.stepLine, isCompleted && { backgroundColor: Theme.primary }]} />}
+                        {stepNumber < steps.length && <View style={[styles.stepLine, isCompleted && { backgroundColor: colors.primary }]} />}
                     </React.Fragment>
                 );
             })}
@@ -86,6 +74,8 @@ const ProgressBar = ({ currentStep, steps }: { currentStep: number, steps: strin
 
 // --- Componente Principal ---
 const InspectionFormScreen = () => {
+    const themeColors = useThemeColors();
+    const styles = getStyles(themeColors);
     const router = useRouter();
     const params = useLocalSearchParams();
     const authContext = useAuth() as AuthContextType;
@@ -129,8 +119,8 @@ const InspectionFormScreen = () => {
 
     const { userSession, setPendingCount } = authContext || {};
 
-    if (!userSession) {
-        return <View style={styles.centeredMessage}><ActivityIndicator size="large" color={Theme.primary} /><Text>Cargando sesión...</Text></View>;
+        if (!userSession) {
+        return <View style={styles.centeredMessage}><ActivityIndicator size="large" color={themeColors.primary} /><Text>Cargando sesión...</Text></View>;
     }
     
     const vehiclePhotoSlots = [
@@ -291,6 +281,7 @@ const InspectionFormScreen = () => {
     
     const renderItemsStep = () => {
         const statusOptions: ('Bien' | 'Regular' | 'Mal')[] = ['Bien', 'Regular', 'Mal'];
+        const statusColorMap = { bien: themeColors.success, regular: themeColors.warning, mal: themeColors.error };
         const handleToggleObservation = (itemId: string) => {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             setObservingItemId(observingItemId === itemId ? null : itemId);
@@ -302,7 +293,7 @@ const InspectionFormScreen = () => {
                     <View key={categoria} style={styles.categoryContainer}>
                         <TouchableOpacity style={styles.categoryHeader} onPress={() => toggleCategory(categoria)} activeOpacity={0.8}>
                             <Text style={styles.categoryTitle}>{categoria}</Text>
-                            <Svg width={20} height={20} viewBox="0 0 24 24" stroke={Theme.primary} strokeWidth={3} fill="none">
+                            <Svg width={20} height={20} viewBox="0 0 24 24" stroke={themeColors.primary} strokeWidth={3} fill="none">
                                 <Path d={openCategory === categoria ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
                             </Svg>
                         </TouchableOpacity>
@@ -314,41 +305,60 @@ const InspectionFormScreen = () => {
                                         <View key={item.id} style={styles.itemContainer}>
                                             <Text style={styles.itemTitle}>{item.nombre}</Text>
                                             <View style={styles.estadoContainer}>
-                                                {statusOptions.map((estado) => {
-                                                    const estadoLower = estado.toLowerCase() as 'bien' | 'regular' | 'mal';
-                                                    const isSelected = item.estado === estadoLower;
-                                                    const statusColor = estado === 'Bien' ? Theme.success : estado === 'Regular' ? Theme.warning : Theme.error;
+                                                {statusOptions.map(status => {
+                                                    const normalizedStatus = status.toLowerCase() as 'bien' | 'regular' | 'mal';
+                                                    const isSelected = item.estado === normalizedStatus;
+                                                    const buttonColor = isSelected ? statusColorMap[normalizedStatus] : themeColors.background;
+                                                    const textColor = isSelected ? themeColors.white : themeColors.text;
+                                                    const borderColor = isSelected ? statusColorMap[normalizedStatus] : themeColors.border;
+
                                                     return (
-                                                        <TouchableOpacity key={estado} style={[styles.estadoButton, isSelected && { backgroundColor: statusColor }]} onPress={() => setItems(current => current.map(i => i.id === item.id ? { ...i, estado: estadoLower } : i))}>
-                                                            <Text style={[styles.estadoButtonText, { color: isSelected ? Theme.white : Theme.textSecondary }]}>{estado}</Text>
+                                                        <TouchableOpacity
+                                                            key={status}
+                                                            style={[styles.estadoButton, { backgroundColor: buttonColor, borderColor }]}
+                                                            onPress={() => setItems(current => current.map(i => i.id === item.id ? { ...i, estado: normalizedStatus } : i))}
+                                                        >
+                                                            <Text style={[styles.estadoButtonText, { color: textColor }]}>{status}</Text>
                                                         </TouchableOpacity>
                                                     );
                                                 })}
                                             </View>
-                                            
-                                            <View style={styles.observationWrapper}>
-                                                {item.observacion && !isObserving && (
-                                                    <Text style={styles.observationText}>{item.observacion}</Text>
-                                                )}
 
-                                                {isObserving && (
-                                                    <TextInput
-                                                        style={styles.textInputObservacion}
-                                                        placeholder="Escriba aquí..."
-                                                        placeholderTextColor={Theme.textSecondary}
-                                                        value={item.observacion}
-                                                        onChangeText={text => setItems(current => current.map(i => i.id === item.id ? { ...i, observacion: text } : i))}
-                                                        multiline
-                                                        autoFocus={true}
-                                                    />
-                                                )}
-
-                                                <TouchableOpacity style={styles.observationButton} onPress={() => handleToggleObservation(item.id)}>
-                                                    <Text style={styles.observationButtonText}>
-                                                        {isObserving ? 'Ocultar' : (item.observacion ? 'Editar Observación' : '+ Añadir Observación')}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            </View>
+                                            {(item.estado === 'regular' || item.estado === 'mal') && (
+                                                <View>
+                                                    <TouchableOpacity onPress={() => handleToggleObservation(item.id)} style={styles.observationButton}>
+                                                        <Text style={styles.observationButtonText}>{isObserving ? 'Ocultar' : 'Añadir/Ver Observación'}</Text>
+                                                    </TouchableOpacity>
+                                                    {isObserving && (
+                                                        <View style={styles.observationWrapper}>
+                                                            {item.observacion ? (
+                                                                <Text style={styles.observationText}>{item.observacion}</Text>
+                                                            ) : null}
+                                                            <TextInput
+                                                                style={styles.textInputObservacion}
+                                                                placeholder="Describe el problema..."
+                                                                placeholderTextColor={themeColors.textSecondary}
+                                                                value={item.observacion}
+                                                                onChangeText={(text) => setItems(current => current.map(i => i.id === item.id ? { ...i, observacion: text } : i))}
+                                                                multiline
+                                                            />
+                                                            {item.foto ? (
+                                                                <View style={styles.evidencePhotoContainer}>
+                                                                    <Image source={{ uri: item.foto.uri }} style={styles.thumbnail} />
+                                                                    <TouchableOpacity onPress={() => handleRemovePhotoForItem(item.id)} style={styles.removePhotoButton}>
+                                                                        <Text style={styles.removePhotoButtonText}>×</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            ) : (
+                                                                <TouchableOpacity onPress={() => handleTakePhotoForItem(item.id)} style={[styles.addPhotoButton, { marginTop: 10, height: 'auto', paddingVertical: 15 }]}>
+                                                                    <Svg width={32} height={32} viewBox="0 0 24 24" stroke={themeColors.primary} strokeWidth={2} fill="none"><Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><Circle cx={12} cy={13} r={4} /></Svg>
+                                                                    <Text style={styles.addPhotoButtonText}>Tomar Foto</Text>
+                                                                </TouchableOpacity>
+                                                            )}
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            )}
                                         </View>
                                     );
                                 })}
@@ -358,254 +368,226 @@ const InspectionFormScreen = () => {
                 ))}
             </ScrollView>
         );
-    }
-
-    const renderEvidenceStep = () => {
-        const itemsWithIssues = items.filter(item => item.estado === 'regular' || item.estado === 'mal');
-
-        if (itemsWithIssues.length === 0 && hasIssues) {
-            return (
-               <View style={styles.centeredMessage}>
-                    <Text style={styles.stepInfoText}>Todos los ítems fueron corregidos a ‘Bien’. Puede continuar al siguiente paso.</Text>
-                </View>
-            );
-        }
-
-        return (
-            <ScrollView contentContainerStyle={{paddingBottom: 20}} showsVerticalScrollIndicator={false}>
-                <Text style={styles.stepInfoText}>Adjunte una foto como evidencia para cada ítem con observaciones.</Text>
-                {itemsWithIssues.map(item => (
-                    <View key={item.id} style={styles.card}>
-                        <Text style={styles.itemTitle}>{item.nombre}</Text>
-                        <View style={styles.evidencePhotoContainer}>
-                            {item.foto ? (
-                                <View style={styles.thumbnailWrapper}>
-                                    <Image source={{ uri: item.foto.uri }} style={styles.thumbnail} />
-                                    <TouchableOpacity style={styles.removePhotoButton} onPress={() => handleRemovePhotoForItem(item.id)}>
-                                        <Text style={styles.removePhotoButtonText}>✕</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            ) : (
-                                <TouchableOpacity style={styles.addPhotoButton} onPress={() => handleTakePhotoForItem(item.id)} activeOpacity={0.7}>
-                                    <Svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={Theme.primary} strokeWidth={1.5}>
-                                         <Path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <Circle cx="12" cy="13" r="4" />
-                                    </Svg>
-                                    <Text style={styles.addPhotoButtonText}>Añadir Evidencia</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </View>
-                ))}
-            </ScrollView>
-        );
     };
 
-    const renderVehiclePhotosStep = () => (
-        <ScrollView contentContainerStyle={{paddingBottom: 20}} showsVerticalScrollIndicator={false}>
-            <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Fotos del Vehículo (Obligatorias)</Text>
-                <View style={styles.vehiclePhotoGrid}>
-                    {vehiclePhotoSlots.map(slot => (
-                        <View key={slot.key} style={styles.vehiclePhotoSlot}>
-                            <Text style={styles.vehiclePhotoLabel}>{slot.label}</Text>
-                            {vehiclePhotos[slot.key] ? (
-                                <View style={styles.thumbnailWrapper}>
-                                    <Image source={{ uri: vehiclePhotos[slot.key].uri }} style={styles.thumbnail} />
-                                    <TouchableOpacity style={styles.removePhotoButton} onPress={() => handleRemoveVehiclePhoto(slot.key)}>
-                                        <Text style={styles.removePhotoButtonText}>✕</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            ) : (
-                                <TouchableOpacity style={styles.addPhotoButton} onPress={() => handleTakeVehiclePhoto(slot.key)} activeOpacity={0.7}>
-                                    <Svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={Theme.primary} strokeWidth={1.5}>
-                                        <Path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <Circle cx="12" cy="13" r="4" />
-                                    </Svg>
-                                    <Text style={styles.addPhotoButtonText}>Añadir</Text>
-                                </TouchableOpacity>
-                            )}
+    const renderEvidenceStep = () => (
+        <ScrollView key="evidence-step" style={styles.stepContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.stepInfoText}>Añade fotos como evidencia para los ítems marcados como &apos;Regular&apos; o &apos;Mal&apos;.</Text>
+            {items.filter(item => item.estado === 'regular' || item.estado === 'mal').map(item => (
+                <View key={item.id} style={styles.card}>
+                    <Text style={styles.itemTitle}>{item.nombre}</Text>
+                    {item.foto ? (
+                        <View style={styles.thumbnailWrapper}>
+                            <Image source={{ uri: item.foto.uri }} style={styles.thumbnail} />
+                            <TouchableOpacity onPress={() => handleRemovePhotoForItem(item.id)} style={styles.removePhotoButton}>
+                                <Text style={styles.removePhotoButtonText}>×</Text>
+                            </TouchableOpacity>
                         </View>
-                    ))}
+                    ) : (
+                        <TouchableOpacity onPress={() => handleTakePhotoForItem(item.id)} style={styles.addPhotoButton}>
+                            <Svg width={32} height={32} viewBox="0 0 24 24" stroke={themeColors.primary} strokeWidth={2} fill="none"><Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><Circle cx={12} cy={13} r={4} /></Svg>
+                            <Text style={styles.addPhotoButtonText}>Tomar Foto de Evidencia</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
-            </View>
-            <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Foto Adicional (Opcional)</Text>
-                    <View style={styles.optionalPhotoContainer}>
-                        {optionalPhoto ? (
+            ))}
+        </ScrollView>
+    );
+
+    const renderVehiclePhotosStep = () => (
+        <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.stepInfoText}>Toma las 4 fotos reglamentarias del vehículo.</Text>
+            <View style={styles.vehiclePhotoGrid}>
+                {vehiclePhotoSlots.map(slot => (
+                    <View key={slot.key} style={styles.vehiclePhotoSlot}>
+                        <Text style={styles.vehiclePhotoLabel}>{slot.label}</Text>
+                        {vehiclePhotos[slot.key] ? (
                             <View style={styles.thumbnailWrapper}>
-                                <Image source={{ uri: optionalPhoto.uri }} style={[styles.thumbnail, {height: 200}]} />
-                                <TouchableOpacity style={styles.removePhotoButton} onPress={handleRemoveOptionalPhoto}>
-                                    <Text style={styles.removePhotoButtonText}>✕</Text>
+                                <Image source={{ uri: vehiclePhotos[slot.key].uri }} style={styles.thumbnail} />
+                                <TouchableOpacity onPress={() => handleRemoveVehiclePhoto(slot.key)} style={styles.removePhotoButton}>
+                                    <Text style={styles.removePhotoButtonText}>×</Text>
                                 </TouchableOpacity>
                             </View>
                         ) : (
-                            <TouchableOpacity style={[styles.addPhotoButton, {height: 120}]} onPress={handleTakeOptionalPhoto} activeOpacity={0.7}>
-                               <Svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={Theme.primary} strokeWidth={1.5}><Path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><Circle cx="12" cy="13" r="4" /></Svg>
-                                <Text style={styles.addPhotoButtonText}>Tomar Foto Adicional</Text>
+                            <TouchableOpacity onPress={() => handleTakeVehiclePhoto(slot.key)} style={styles.addPhotoButton}>
+                                <Svg width={32} height={32} viewBox="0 0 24 24" stroke={themeColors.primary} strokeWidth={2} fill="none"><Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><Circle cx={12} cy={13} r={4} /></Svg>
                             </TouchableOpacity>
                         )}
                     </View>
+                ))}
+            </View>
+            <View style={[styles.card, { marginTop: 20 }]}>
+                <Text style={styles.cardTitle}>Foto Adicional (Opcional)</Text>
+                {optionalPhoto ? (
+                    <View style={styles.thumbnailWrapper}>
+                        <Image source={{ uri: optionalPhoto.uri }} style={styles.thumbnail} />
+                        <TouchableOpacity onPress={handleRemoveOptionalPhoto} style={styles.removePhotoButton}>
+                            <Text style={styles.removePhotoButtonText}>×</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <TouchableOpacity onPress={handleTakeOptionalPhoto} style={styles.addPhotoButton}>
+                        <Svg width={32} height={32} viewBox="0 0 24 24" stroke={themeColors.primary} strokeWidth={2} fill="none"><Path d="M12 5v14m-7-7h14" /></Svg>
+                        <Text style={styles.addPhotoButtonText}>Añadir Foto</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </ScrollView>
     );
 
-    const renderSignaturesStep = () => (
-        <ScrollView contentContainerStyle={{paddingBottom: 20}} showsVerticalScrollIndicator={false}>
-            <Text style={styles.stepInfoText}>Realice las firmas de conformidad para finalizar el reporte.</Text>
+    const renderSignatureStep = () => (
+        <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
             <View style={styles.card}>
-                <Text style={styles.cardTitle}>Firma de Conformidad del Inspector</Text>
+                <Text style={styles.cardTitle}>Firma del Inspector</Text>
                 <TouchableOpacity onPress={() => setSignatureModal({ visible: true, type: 'inspector' })} style={styles.signaturePlaceholder}>
-                    {inspectorSignature ? ( <Image source={{ uri: inspectorSignature }} style={styles.signatureImage} resizeMode="contain" />) : (<Text style={styles.signaturePlaceholderText}>Tocar aquí para firmar</Text>)}
+                    {inspectorSignature ? (
+                        <Image source={{ uri: inspectorSignature }} style={styles.signatureImage} resizeMode="contain" />
+                    ) : (
+                        <Text style={styles.signaturePlaceholderText}>Tocar para firmar</Text>
+                    )}
                 </TouchableOpacity>
                 {inspectorSignature && <Text style={styles.signatureConfirmation}>✓ Firma Guardada</Text>}
             </View>
+
             <View style={styles.card}>
                 <Text style={styles.cardTitle}>Firma del Contribuyente (Opcional)</Text>
                 <TouchableOpacity onPress={() => setSignatureModal({ visible: true, type: 'contributor' })} style={styles.signaturePlaceholder}>
-                    {contributorSignature ? (<Image source={{ uri: contributorSignature }} style={styles.signatureImage} resizeMode="contain" /> ) : ( <Text style={styles.signaturePlaceholderText}>Tocar aquí para firmar</Text> )}
+                    {contributorSignature ? (
+                        <Image source={{ uri: contributorSignature }} style={styles.signatureImage} resizeMode="contain" />
+                    ) : (
+                        <Text style={styles.signaturePlaceholderText}>Tocar para firmar</Text>
+                    )}
                 </TouchableOpacity>
                 {contributorSignature && <Text style={styles.signatureConfirmation}>✓ Firma Guardada</Text>}
             </View>
 
             {tramite?.titular?.email && (
-              <View style={styles.card}>
-                <View style={styles.checkboxContainer}>
-                    <TouchableOpacity style={styles.checkbox} onPress={() => setSendEmailCopy(!sendEmailCopy)} activeOpacity={1}>
-                        {sendEmailCopy && (
-                            <Svg width={18} height={18} viewBox="0 0 24 24" stroke={Theme.primary} strokeWidth={3} fill="none"><Path d="M20 6L9 17l-5-5" /></Svg>
-                        )}
+                <View style={[styles.card, { flexDirection: 'row', alignItems: 'center' }]}>
+                    <TouchableOpacity onPress={() => setSendEmailCopy(!sendEmailCopy)} style={styles.checkbox}>
+                        {sendEmailCopy && <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={themeColors.primary} strokeWidth={3}><Path d="M20 6L9 17l-5-5" /></Svg>}
                     </TouchableOpacity>
-                    <Text style={styles.checkboxLabel}>Enviar copia de la inspección por email</Text>
+                    <Text style={styles.checkboxLabel} onPress={() => setSendEmailCopy(!sendEmailCopy)}>Enviar copia por email al titular</Text>
                 </View>
-              </View>
             )}
         </ScrollView>
     );
 
     const renderStepContent = () => {
-        const stepName = steps[currentStep - 1];
-        switch (stepName) {
+        const currentStepName = steps[currentStep - 1];
+        switch (currentStepName) {
             case 'Verificación': return renderItemsStep();
             case 'Evidencia': return renderEvidenceStep();
             case 'Fotos Vehículo': return renderVehiclePhotosStep();
-            case 'Firmas': return renderSignaturesStep();
+            case 'Firmas': return renderSignatureStep();
             default: return null;
         }
     };
 
-    if (!tramite) {
-        return (
-            <SafeAreaView style={styles.safeArea}>
-                <View style={styles.container}><Text>Error: Datos del trámite no encontrados.</Text></View>
-            </SafeAreaView>
-        )
-    }
-
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <Stack.Screen options={{ title: `Inspección: ${tramite.habilitacion.nro_licencia}` }} />
-            <View style={styles.container}>
-                <Text style={styles.mainTitle}>Formulario de Inspección</Text>
-                <Text style={styles.subtitle}>Licencia: {tramite.habilitacion?.nro_licencia || 'N/A'}</Text>
-                <ProgressBar currentStep={currentStep} steps={steps} />
-                <View style={styles.stepContent}>{renderStepContent()}</View>
-                <View style={styles.footerNav}>
-                    <TouchableOpacity style={[styles.navButton, currentStep === 1 && styles.navButtonDisabled]} onPress={handlePrevStep} disabled={currentStep === 1} activeOpacity={0.7}><Text style={styles.navButtonText}>Anterior</Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.navButtonPrimary} onPress={handleNextStep} disabled={isSubmitting} activeOpacity={0.8}>{isSubmitting && currentStep === steps.length ? <ActivityIndicator color={Theme.white} /> : <Text style={styles.navButtonPrimaryText}>{currentStep === steps.length ? 'Finalizar Inspección' : 'Siguiente'}</Text>}</TouchableOpacity>
-                </View>
+        <SafeAreaView style={styles.container}>
+            <Stack.Screen options={{ title: 'Nueva Inspección', headerStyle: { backgroundColor: themeColors.background }, headerTintColor: themeColors.text }} />
+            <Text style={styles.mainTitle}>{`Inspección para ${tramite?.habilitacion?.nro_licencia || 'N/A'}`}</Text>
+            <Text style={styles.subtitle}>{tramite?.habilitacion?.tipo_transporte || 'Transporte'}</Text>
+
+            <ProgressBar currentStep={currentStep} steps={steps} colors={themeColors} />
+
+            {renderStepContent()}
+
+            <View style={styles.footerNav}>
+                <TouchableOpacity onPress={handlePrevStep} style={[styles.navButton, currentStep === 1 && styles.navButtonDisabled]} disabled={currentStep === 1}>
+                    <Text style={styles.navButtonText}>Anterior</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleNextStep} style={styles.navButtonPrimary} disabled={isSubmitting}>
+                    {isSubmitting ? <ActivityIndicator color={themeColors.white} /> : <Text style={styles.navButtonPrimaryText}>{currentStep === steps.length ? 'Finalizar' : 'Siguiente'}</Text>}
+                </TouchableOpacity>
             </View>
-            <Modal visible={signatureModal.visible} onRequestClose={() => setSignatureModal({ visible: false, type: null })}>
-                <SafeAreaView style={styles.modalContainer}>
-                    <Text style={styles.modalTitle}>{signatureModal.type === 'inspector' ? 'Firma del Inspector' : 'Firma del Contribuyente'}</Text>
+
+            <Modal visible={signatureModal.visible} animationType="slide">
+                <View style={styles.modalContainer}>
+                    <Text style={styles.modalTitle}>{`Firma del ${signatureModal.type === 'inspector' ? 'Inspector' : 'Contribuyente'}`}</Text>
                     <SignatureScreen
                         ref={signatureModal.type === 'inspector' ? inspectorSignatureRef : contributorSignatureRef}
-                        onOK={(sig: string) => {
-                            const fullSignatureUri = ensureDataUriPrefix(sig);
-                            if (signatureModal.type === 'inspector') {
-                                setInspectorSignature(fullSignatureUri);
-                            } else {
-                                setContributorSignature(fullSignatureUri);
-                            }
+                        onOK={(sig) => {
+                            const signature = ensureDataUriPrefix(sig);
+                            if (signatureModal.type === 'inspector') setInspectorSignature(signature);
+                            else setContributorSignature(signature);
                             setSignatureModal({ visible: false, type: null });
                         }}
-                        onEmpty={() => Alert.alert("Atención", "Por favor, realice una firma.")}
-                        descriptionText="" clearText="Limpiar" confirmText="Guardar Firma"
-                        penColor={Theme.text}
-                        webStyle={`.m-signature-pad { box-shadow: none; border: none; } .m-signature-pad--body { border: 2px dashed ${Theme.border}; border-radius: 8px; } .m-signature-pad--footer { justify-content: space-around; }`}
+                        onEmpty={() => Alert.alert("Atención", "La firma no puede estar vacía.")}
+                        descriptionText="" webStyle={`.m-signature-pad--footer {display: none; margin: 0px;} body,html {height: 100%;}`.replace(/'/g, '&apos;')}
                     />
-                    <TouchableOpacity style={styles.modalCloseButton} onPress={() => setSignatureModal({ visible: false, type: null })}>
-                        <Text style={styles.modalCloseButtonText}>Cerrar sin Guardar</Text>
+                    <TouchableOpacity onPress={() => setSignatureModal({ visible: false, type: null })} style={styles.modalCloseButton}>
+                        <Text style={styles.modalCloseButtonText}>Cerrar</Text>
                     </TouchableOpacity>
-                </SafeAreaView>
+                </View>
             </Modal>
         </SafeAreaView>
     );
 };
 
-const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: Theme.background },
+const getStyles = (themeColors: any) => StyleSheet.create({
     container: { 
-        flex: 1, 
-        paddingHorizontal: 15,
-        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0
+      flex: 1, 
+      paddingHorizontal: 15,
+      paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0,
+      backgroundColor: themeColors.background,
     },
-    mainTitle: { fontSize: 28, fontWeight: 'bold', color: Theme.text, textAlign: 'center', marginTop: 10 },
-    subtitle: { fontSize: 16, color: Theme.textSecondary, textAlign: 'center', marginBottom: 25 },
+    mainTitle: { fontSize: 28, fontWeight: 'bold', color: themeColors.text, textAlign: 'center', marginTop: 10 },
+    subtitle: { fontSize: 16, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 25 },
     progressContainer: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 25, paddingHorizontal: 10 },
     step: { alignItems: 'center', flex: 1 },
-    stepCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: Theme.white, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: Theme.border },
-    stepNumber: { color: Theme.textSecondary, fontWeight: 'bold' },
-    stepLabel: { fontSize: 12, color: Theme.textSecondary, marginTop: 6, textAlign: 'center', fontWeight: '500' },
-    stepLine: { flex: 1, height: 2, backgroundColor: Theme.border, top: 15, marginHorizontal: -15, zIndex: -1 },
+    stepCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: themeColors.white, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: themeColors.border },
+    stepNumber: { color: themeColors.textSecondary, fontWeight: 'bold' },
+    stepLabel: { fontSize: 12, color: themeColors.textSecondary, marginTop: 6, textAlign: 'center', fontWeight: '500' },
+    stepLine: { flex: 1, height: 2, backgroundColor: themeColors.border, top: 15, marginHorizontal: -15, zIndex: -1 },
     stepContent: { flex: 1 },
     centeredMessage: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    stepInfoText: { fontSize: 16, color: Theme.textSecondary, textAlign: 'center', marginBottom: 20, paddingHorizontal: 10 },
-    footerNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 15, borderTopWidth: 1, borderTopColor: Theme.border, backgroundColor: Theme.background },
-    navButton: { paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1.5, borderColor: Theme.textSecondary },
+    stepInfoText: { fontSize: 16, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20, paddingHorizontal: 10 },
+    footerNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 15, borderTopWidth: 1, borderTopColor: themeColors.border, backgroundColor: themeColors.background },
+    navButton: { paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1.5, borderColor: themeColors.textSecondary },
     navButtonDisabled: { opacity: 0.5 },
-    navButtonText: { color: Theme.textSecondary, fontWeight: 'bold', fontSize: 16 },
-    navButtonPrimary: { paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: Theme.primary, elevation: 2, shadowColor: Theme.black, shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
-    navButtonPrimaryText: { color: Theme.white, fontWeight: 'bold', fontSize: 16 },
-    card: { backgroundColor: Theme.cardBackground, borderRadius: 12, marginBottom: 15, padding: 15, borderWidth: 1, borderColor: Theme.border, },
-    categoryContainer: { backgroundColor: Theme.cardBackground, borderRadius: 12, marginBottom: 10, overflow: 'hidden', borderWidth: 1, borderColor: Theme.border, elevation: 1, shadowColor: Theme.black, shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: {width: 0, height: 1} },
+    navButtonText: { color: themeColors.textSecondary, fontWeight: 'bold', fontSize: 16 },
+    navButtonPrimary: { paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: themeColors.primary, elevation: 2, shadowColor: themeColors.black, shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+    navButtonPrimaryText: { color: themeColors.white, fontWeight: 'bold', fontSize: 16 },
+    card: { backgroundColor: themeColors.cardBackground, borderRadius: 12, marginBottom: 15, padding: 15, borderWidth: 1, borderColor: themeColors.border, },
+    categoryContainer: { backgroundColor: themeColors.cardBackground, borderRadius: 12, marginBottom: 10, overflow: 'hidden', borderWidth: 1, borderColor: themeColors.border, elevation: 1, shadowColor: themeColors.black, shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: {width: 0, height: 1} },
     categoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },
-    categoryTitle: { fontSize: 18, fontWeight: '700', color: Theme.text },
+    categoryTitle: { fontSize: 18, fontWeight: '700', color: themeColors.text },
     itemsList: { paddingTop: 5 },
-    itemContainer: { paddingHorizontal: 15, paddingVertical: 20, borderTopWidth: 1, borderTopColor: Theme.border },
-    itemTitle: { fontSize: 16, fontWeight: '600', color: Theme.text, marginBottom: 15 },
+    itemContainer: { paddingHorizontal: 15, paddingVertical: 20, borderTopWidth: 1, borderTopColor: themeColors.border },
+    itemTitle: { fontSize: 16, fontWeight: '600', color: themeColors.text, marginBottom: 15 },
     estadoContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-    estadoButton: { paddingVertical: 10, borderRadius: 20, flex: 1, marginHorizontal: 4, alignItems: 'center', borderWidth: 1.5, borderColor: Theme.border },
+    estadoButton: { paddingVertical: 10, borderRadius: 20, flex: 1, marginHorizontal: 4, alignItems: 'center', borderWidth: 1.5, borderColor: themeColors.border },
     estadoButtonText: { fontSize: 14, fontWeight: 'bold' },
-    textInputObservacion: { backgroundColor: Theme.background, borderRadius: 8, padding: 12, height: 70, textAlignVertical: 'top', fontSize: 15, color: Theme.text, borderWidth: 1, borderColor: Theme.border },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: Theme.text, marginBottom: 20 },
+    textInputObservacion: { backgroundColor: themeColors.background, borderRadius: 8, padding: 12, height: 70, textAlignVertical: 'top', fontSize: 15, color: themeColors.text, borderWidth: 1, borderColor: themeColors.border },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: themeColors.text, marginBottom: 20 },
     vehiclePhotoGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
     vehiclePhotoSlot: { width: '48%', marginBottom: 15 },
-    vehiclePhotoLabel: { fontSize: 14, fontWeight: '600', color: Theme.textSecondary, marginBottom: 8, textAlign: 'center' },
-    addPhotoButton: { height: 120, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.primaryLight, borderRadius: 12, borderWidth: 1, borderColor: Theme.primaryLight },
-    addPhotoButtonText: { color: Theme.primary, fontWeight: 'bold', marginTop: 8, fontSize: 14 },
+    vehiclePhotoLabel: { fontSize: 14, fontWeight: '600', color: themeColors.textSecondary, marginBottom: 8, textAlign: 'center' },
+    addPhotoButton: { height: 120, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.primaryLight, borderRadius: 12, borderWidth: 1, borderColor: themeColors.primaryLight },
+    addPhotoButtonText: { color: themeColors.primary, fontWeight: 'bold', marginTop: 8, fontSize: 14 },
     thumbnail: { width: '100%', height: 120, borderRadius: 10 },
-    thumbnailWrapper: { position: 'relative', width: '100%', elevation: 3, shadowColor: Theme.black, shadowOpacity: 0.15, shadowRadius: 5, shadowOffset: { width: 0, height: 3 } },
-    removePhotoButton: { position: 'absolute', top: -10, right: -10, backgroundColor: Theme.error, width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', elevation: 4 },
-    removePhotoButtonText: { color: Theme.white, fontWeight: 'bold', fontSize: 16, lineHeight: 18 },
-    cardTitle: { fontSize: 18, fontWeight: 'bold', color: Theme.text, marginBottom: 15 },
-    signaturePlaceholder: { height: 150, backgroundColor: Theme.background, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: Theme.border, borderStyle: 'dashed' },
-    signaturePlaceholderText: { color: Theme.textSecondary, fontWeight: '600', fontSize: 16 },
+    thumbnailWrapper: { position: 'relative', width: '100%', elevation: 3, shadowColor: themeColors.black, shadowOpacity: 0.15, shadowRadius: 5, shadowOffset: { width: 0, height: 3 } },
+    removePhotoButton: { position: 'absolute', top: -10, right: -10, backgroundColor: themeColors.error, width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', elevation: 4 },
+    removePhotoButtonText: { color: themeColors.white, fontWeight: 'bold', fontSize: 16, lineHeight: 18 },
+    cardTitle: { fontSize: 18, fontWeight: 'bold', color: themeColors.text, marginBottom: 15 },
+    signaturePlaceholder: { height: 150, backgroundColor: themeColors.background, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: themeColors.border, borderStyle: 'dashed' },
+    signaturePlaceholderText: { color: themeColors.textSecondary, fontWeight: '600', fontSize: 16 },
     signatureImage: { width: '100%', height: '100%' },
-    signatureConfirmation: { color: Theme.success, fontWeight: 'bold', marginTop: 10, textAlign: 'center', fontSize: 14 },
-    modalContainer: { flex: 1, justifyContent: 'center', padding: 15, backgroundColor: Theme.cardBackground },
-    modalTitle: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: Theme.text },
+    signatureConfirmation: { color: themeColors.success, fontWeight: 'bold', marginTop: 10, textAlign: 'center', fontSize: 14 },
+    modalContainer: { flex: 1, justifyContent: 'center', padding: 15, backgroundColor: themeColors.cardBackground },
+    modalTitle: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: themeColors.text },
     modalCloseButton: { marginTop: 20, padding: 15, alignItems: 'center' },
-    modalCloseButtonText: { color: Theme.primary, fontSize: 16, fontWeight: 'bold' },
+    modalCloseButtonText: { color: themeColors.primary, fontSize: 16, fontWeight: 'bold' },
     evidencePhotoContainer: { alignItems: 'center', marginTop: 10, },
     optionalPhotoContainer: { alignItems: 'center', justifyContent: 'center' },
     checkboxContainer: { flexDirection: 'row', alignItems: 'center' },
-    checkbox: { width: 26, height: 26, borderWidth: 2, borderColor: Theme.primary, borderRadius: 6, marginRight: 15, justifyContent: 'center', alignItems: 'center' },
-    checkboxLabel: { fontSize: 16, color: Theme.text, flex: 1 },
+    checkbox: { width: 26, height: 26, borderWidth: 2, borderColor: themeColors.primary, borderRadius: 6, marginRight: 15, justifyContent: 'center', alignItems: 'center' },
+    checkboxLabel: { fontSize: 16, color: themeColors.text, flex: 1 },
     observationWrapper: { marginTop: 15, },
-    observationText: { fontSize: 15, color: Theme.textSecondary, backgroundColor: Theme.background, padding: 12, borderRadius: 8, fontStyle: 'italic', marginBottom: 10, },
+    observationText: { fontSize: 15, color: themeColors.textSecondary, backgroundColor: themeColors.background, padding: 12, borderRadius: 8, fontStyle: 'italic', marginBottom: 10, },
     observationButton: { alignSelf: 'flex-start', marginTop: 10, },
-    observationButtonText: { color: Theme.primary, fontWeight: 'bold', fontSize: 15, },
-});
+    observationButtonText: { color: themeColors.primary, fontWeight: 'bold', fontSize: 15, },
+  });
 
 export default InspectionFormScreen;

@@ -3,10 +3,10 @@
 // Muestra el detalle de la habilitación y genera un mensaje de WhatsApp completo.
 // =========================================================================
 
-import { Colors } from '@/constants/Colors'; // Asumiendo que tenés este archivo de colores
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, useColorScheme, View, Platform, StatusBar } from 'react-native';
+import { ActivityIndicator, Alert, Linking, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, StatusBar } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { Vehiculo } from '../../src/types/habilitacion';
 
@@ -53,8 +53,7 @@ const StatusBadge = ({ estado, themeColors, styles }: { estado: Habilitacion['es
     );
 };
 
-const InfoRow = ({ label, value, icon }: { label: string, value?: string | null, icon: React.ReactNode }) => {
-    const styles = getStyles(Colors.light);
+const InfoRow = ({ label, value, icon, styles }: { label: string, value?: string | null, icon: React.ReactNode, styles: any }) => {
     if (!value) return null;
     return (
         <View style={styles.infoRow}>
@@ -67,8 +66,7 @@ const InfoRow = ({ label, value, icon }: { label: string, value?: string | null,
     );
 };
 
-const DetailCard = ({ title, children, headerAccessory }: { title: string, children: React.ReactNode, headerAccessory?: React.ReactNode }) => {
-    const styles = getStyles(Colors.light);
+const DetailCard = ({ title, children, headerAccessory, styles }: { title: string, children: React.ReactNode, headerAccessory?: React.ReactNode, styles: any }) => {
     return (
         <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -87,12 +85,7 @@ const DetailCard = ({ title, children, headerAccessory }: { title: string, child
 export default function InspeccionDetalleScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const colorScheme = useColorScheme() ?? 'light';
-    const themeColors = useMemo(() => ({
-        ...Colors[colorScheme],
-        primary: '#00AEEF',
-        primaryDark: '#008ACD',
-    }), [colorScheme]);
+    const themeColors = useThemeColors();
     const styles = getStyles(themeColors);
 
     const [tramite, setTramite] = useState<Tramite | null>(null);
@@ -192,17 +185,18 @@ Gracias.`;
                     <DetailCard 
                         title="Datos de la Habilitación" 
                         headerAccessory={<StatusBadge estado={habilitacion.estado} themeColors={themeColors} styles={styles} />}
+                        styles={styles}
                     >
-                        <InfoRow label="N° de Licencia" value={habilitacion.nro_licencia} icon={<FileTextIcon color={themeColors.primary} />} />
-                        <InfoRow label="Tipo de Transporte" value={habilitacion.tipo_transporte} icon={<CarIcon color={themeColors.primary} />} />
-                        <InfoRow label="Expediente" value={habilitacion.expte} icon={<FileTextIcon color={themeColors.primary} />} />
+                        <InfoRow label="N° de Licencia" value={habilitacion.nro_licencia} icon={<FileTextIcon color={themeColors.primary} />} styles={styles} />
+                        <InfoRow label="Tipo de Transporte" value={habilitacion.tipo_transporte} icon={<CarIcon color={themeColors.primary} />} styles={styles} />
+                        <InfoRow label="Expediente" value={habilitacion.expte} icon={<FileTextIcon color={themeColors.primary} />} styles={styles} />
                     </DetailCard>
 
                     {/* Tarjeta de Titular */}
                     {titular && (
-                        <DetailCard title="Datos del Titular">
-                            <InfoRow label="Nombre Completo" value={titular.nombre} icon={<UserIcon color={themeColors.primary} />} />
-                            <InfoRow label="DNI" value={titular.dni} icon={<UserIcon color={themeColors.primary} />} />
+                        <DetailCard title="Datos del Titular" styles={styles}>
+                            <InfoRow label="Nombre Completo" value={titular.nombre} icon={<UserIcon color={themeColors.primary} />} styles={styles} />
+                            <InfoRow label="DNI" value={titular.dni} icon={<UserIcon color={themeColors.primary} />} styles={styles} />
                             <TouchableOpacity style={styles.whatsappButton} onPress={handleWhatsAppPress} disabled={!titular?.telefono}>
                                 <WhatsAppIcon color={!titular?.telefono ? themeColors.grayMedium : themeColors.success} />
                                 <Text style={[styles.whatsappButtonText, { color: !titular?.telefono ? themeColors.grayMedium : themeColors.success }]}>
@@ -214,17 +208,17 @@ Gracias.`;
 
                     {/* Tarjeta de Vehículo */}
                     {vehiculo && (
-                        <DetailCard title="Datos del Vehículo">
-                            <InfoRow label="Marca y Modelo" value={`${vehiculo.marca} ${vehiculo.modelo}`} icon={<CarIcon color={themeColors.primary} />} />
-                            <InfoRow label="Dominio" value={vehiculo.dominio} icon={<CarIcon color={themeColors.primary} />} />
+                        <DetailCard title="Datos del Vehículo" styles={styles}>
+                            <InfoRow label="Marca y Modelo" value={`${vehiculo.marca} ${vehiculo.modelo}`} icon={<CarIcon color={themeColors.primary} />} styles={styles} />
+                            <InfoRow label="Dominio" value={vehiculo.dominio} icon={<CarIcon color={themeColors.primary} />} styles={styles} />
                         </DetailCard>
                     )}
 
                     {/* Tarjeta de Turno */}
                     {turno && (
-                        <DetailCard title="Datos del Turno">
-                            <InfoRow label="Fecha y Hora" value={turnoInfo} icon={<CalendarIcon color={themeColors.primary} />} />
-                            <InfoRow label="Estado del Turno" value={turno.estado} icon={<CalendarIcon color={themeColors.primary} />} />
+                        <DetailCard title="Datos del Turno" styles={styles}>
+                            <InfoRow label="Fecha y Hora" value={turnoInfo} icon={<CalendarIcon color={themeColors.primary} />} styles={styles} />
+                            <InfoRow label="Estado del Turno" value={turno.estado} icon={<CalendarIcon color={themeColors.primary} />} styles={styles} />
                         </DetailCard>
                     )}
                 </View>
@@ -272,7 +266,7 @@ const getStyles = (colors: any) => StyleSheet.create({
         paddingVertical: 15,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
-        backgroundColor: 'rgba(0, 174, 239, 0.05)'
+        backgroundColor: colors.primaryLight
     },
     cardTitle: {
         fontSize: 18,
@@ -302,7 +296,7 @@ const getStyles = (colors: any) => StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(0, 174, 239, 0.1)',
+        backgroundColor: colors.primaryLight,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
@@ -344,7 +338,7 @@ const getStyles = (colors: any) => StyleSheet.create({
         paddingVertical: 12,
         marginTop: 10,
         borderRadius: 8,
-        backgroundColor: 'rgba(37, 211, 102, 0.1)',
+        backgroundColor: colors.primaryLight,
     },
     whatsappButtonText: {
         marginLeft: 10,

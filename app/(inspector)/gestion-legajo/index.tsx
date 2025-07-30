@@ -1,5 +1,6 @@
 import type { Vehiculo as VehiculoBase } from '@/types/habilitacion';
 import * as ImagePicker from 'expo-image-picker';
+import { useThemeColors, type ThemeColors } from '@/hooks/useThemeColors';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -24,13 +25,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const theme = {
-    background: '#F1F5F9', card: '#FFFFFF', textPrimary: '#0F172A',
-    textSecondary: '#64748B', primary: '#0093D2', primaryLight: '#E0F2FE',
-    primaryDark: '#0284C7', white: '#FFFFFF', error: '#EF4444',
-    disabled: '#E2E8F0', border: '#CBD5E1',
-};
-
 type IconProps = { color: string; size?: number };
 const ArrowLeftIcon = ({ color, size = 28 }: IconProps) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M19 12H5M12 19l-7-7 7-7" /></Svg>;
 const SearchIcon = ({ color, size = 20 }: IconProps) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><Circle cx="11" cy="11" r="8" /><Path d="M21 21l-4.35-4.35" /></Svg>;
@@ -54,39 +48,41 @@ interface Vehiculo extends VehiculoBase {
 }
 interface LegajoCompleto { vehiculo: Vehiculo; personas: Persona[]; }
 
-const AnimatedGridItem = ({ item, index, onPress }: { item: Licencia, index: number, onPress: () => void }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    useEffect(() => {
-        Animated.timing(fadeAnim, { toValue: 1, duration: 400, delay: index * 100, useNativeDriver: true }).start();
-    }, [fadeAnim, index]);
-
-    return (
-        <Animated.View style={[styles.gridItem, { opacity: fadeAnim }]}>
-            <TouchableOpacity onPress={onPress} style={styles.card}>
-                <View style={styles.cardIconContainer}><UserIcon color={theme.primaryDark} size={24} /></View>
-                <Text style={styles.cardTitle} numberOfLines={2}>{item.titular_principal}</Text>
-                <Text style={styles.cardSubtitle} numberOfLines={1}>{item.nro_licencia}</Text>
-            </TouchableOpacity>
-        </Animated.View>
-    );
-};
-
-interface InputWithIconProps extends TextInputProps {
-    icon: React.ReactNode;
-}
-
-const InputWithIcon = ({ icon, style, ...props }: InputWithIconProps) => (
-    <View style={styles.inputContainer}>
-        <View style={styles.inputIcon}>{icon}</View>
-        <TextInput 
-            style={[styles.input, { paddingLeft: 40 }, style]} 
-            placeholderTextColor={theme.textSecondary}
-            {...props} 
-        />
-    </View>
-);
-
 export default function GestionLegajoScreen() {
+    const themeColors = useThemeColors();
+    const styles = getStyles(themeColors);
+
+    const AnimatedGridItem = ({ item, index, onPress }: { item: Licencia; index: number; onPress: () => void; }) => {
+        const fadeAnim = useRef(new Animated.Value(0)).current;
+        useEffect(() => {
+            Animated.timing(fadeAnim, { toValue: 1, duration: 400, delay: index * 100, useNativeDriver: true }).start();
+        }, [fadeAnim, index]);
+    
+        return (
+            <Animated.View style={[styles.gridItem, { opacity: fadeAnim }]}>
+                <TouchableOpacity onPress={onPress} style={styles.card}>
+                    <View style={styles.cardIconContainer}><UserIcon color={themeColors.primaryDark} size={24} /></View>
+                    <Text style={styles.cardTitle} numberOfLines={2}>{item.titular_principal}</Text>
+                    <Text style={styles.cardSubtitle} numberOfLines={1}>{item.nro_licencia}</Text>
+                </TouchableOpacity>
+            </Animated.View>
+        );
+    };
+    
+    interface InputWithIconProps extends TextInputProps {
+        icon: React.ReactNode;
+    }
+    
+    const InputWithIcon = ({ icon, style, ...props }: InputWithIconProps) => (
+        <View style={styles.inputContainer}>
+            <View style={styles.inputIcon}>{icon}</View>
+            <TextInput 
+                style={[styles.input, { paddingLeft: 40 }, style]} 
+                placeholderTextColor={themeColors.textSecondary}
+                {...props} 
+            />
+        </View>
+    );
     const router = useRouter();
     const [step, setStep] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
@@ -106,7 +102,7 @@ export default function GestionLegajoScreen() {
             const data = await response.json();
             setTodasLasLicencias(data.licencias || []);
             setLicenciasFiltradas(data.licencias || []);
-        } catch (error) { Alert.alert("Error", "No se pudo cargar la lista de habilitaciones."); }
+        } catch { Alert.alert("Error", "No se pudo cargar la lista de habilitaciones."); }
         finally { setIsLoading(false); }
     }, []);
 
@@ -233,7 +229,7 @@ export default function GestionLegajoScreen() {
 
     const renderStepContent = () => {
         if (isLoading && step === 1 && todasLasLicencias.length === 0) {
-            return <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} />;
+            return <ActivityIndicator size="large" color={themeColors.primary} style={{ marginTop: 40 }} />;
         }
         
         switch (step) {
@@ -255,7 +251,7 @@ export default function GestionLegajoScreen() {
                     <ScrollView>
                         {selectedLegajo?.vehiculo && (
                             <TouchableOpacity style={styles.cardSelect} onPress={() => selectEntityToEdit(selectedLegajo.vehiculo)}>
-                                <CarIcon color={theme.primaryDark} />
+                                <CarIcon color={themeColors.primaryDark} />
                                 <View style={styles.cardTextContainer}>
                                     <Text style={styles.cardTitle}>Vehículo</Text>
                                     <Text style={styles.cardSubtitle}>{selectedLegajo.vehiculo.marca} {selectedLegajo.vehiculo.modelo}</Text>
@@ -264,7 +260,7 @@ export default function GestionLegajoScreen() {
                         )}
                         {selectedLegajo?.personas.map(p => (
                             <TouchableOpacity key={p.id} style={styles.cardSelect} onPress={() => selectEntityToEdit(p)}>
-                                <UserIcon color={theme.primaryDark} />
+                                <UserIcon color={themeColors.primaryDark} />
                                 <View style={styles.cardTextContainer}>
                                     <Text style={styles.cardTitle}>{p.rol}</Text>
                                     <Text style={styles.cardSubtitle}>{p.nombre}</Text>
@@ -279,15 +275,15 @@ export default function GestionLegajoScreen() {
                     <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
                         {isPerson ? (
                             <TouchableOpacity style={styles.scanButton} onPress={handleScanDNI} disabled={isScanning}>
-                                {isScanning ? <ActivityIndicator color={theme.white} /> : ( <>
-                                    <CameraIcon color={theme.white} size={28}/>
+                                {isScanning ? <ActivityIndicator color={themeColors.white} /> : ( <>
+                                    <CameraIcon color={themeColors.white} size={28}/>
                                     <Text style={styles.scanButtonText}>Escanear Nuevo DNI</Text>
                                 </> )}
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity onPress={pickImageForEntity} style={styles.imageContainer}>
                                 <Image source={{ uri: entityToEdit?.foto_url || undefined }} style={styles.previewImage} />
-                                <View style={styles.imageOverlay}><CameraIcon color={theme.white} /><Text style={styles.imageOverlayText}>Cambiar Foto del Vehículo</Text></View>
+                                <View style={styles.imageOverlay}><CameraIcon color={themeColors.white} /><Text style={styles.imageOverlayText}>Cambiar Foto del Vehículo</Text></View>
                             </TouchableOpacity>
                         )}
                         
@@ -296,8 +292,8 @@ export default function GestionLegajoScreen() {
                         {isPerson ? (
                             <>
                                 <Text style={styles.sectionTitle}>Datos Personales</Text>
-                                <InputWithIcon icon={<UserIcon color={theme.textSecondary} size={20}/>} value={entityToEdit.nombre} editable={false} style={styles.inputDisabled} />
-                                <InputWithIcon icon={<IdIcon color={theme.textSecondary} />} value={entityToEdit.dni} editable={false} style={styles.inputDisabled} />
+                                <InputWithIcon icon={<UserIcon color={themeColors.textSecondary} size={20}/>} value={entityToEdit.nombre} editable={false} style={styles.inputDisabled} />
+                                <InputWithIcon icon={<IdIcon color={themeColors.textSecondary} />} value={entityToEdit.dni} editable={false} style={styles.inputDisabled} />
                                 <TextInput style={styles.input} placeholder="CUIT" value={entityToEdit.cuit} onChangeText={v => handleFieldChange('cuit', v)} keyboardType="numeric" />
                                 <View style={styles.pickerContainer}>
                                     <Text style={styles.label}>Género:</Text>
@@ -306,8 +302,8 @@ export default function GestionLegajoScreen() {
                                 </View>
                                 
                                 <Text style={styles.sectionTitle}>Información de Contacto</Text>
-                                <InputWithIcon icon={<PhoneIcon color={theme.textSecondary} />} placeholder="Teléfono" value={entityToEdit.telefono} onChangeText={v => handleFieldChange('telefono', v)} keyboardType="phone-pad" />
-                                <InputWithIcon icon={<MailIcon color={theme.textSecondary} />} placeholder="Email" value={entityToEdit.email} onChangeText={v => handleFieldChange('email', v)} keyboardType="email-address" autoCapitalize="none" />
+                                <InputWithIcon icon={<PhoneIcon color={themeColors.textSecondary} />} placeholder="Teléfono" value={entityToEdit.telefono} onChangeText={v => handleFieldChange('telefono', v)} keyboardType="phone-pad" />
+                                <InputWithIcon icon={<MailIcon color={themeColors.textSecondary} />} placeholder="Email" value={entityToEdit.email} onChangeText={v => handleFieldChange('email', v)} keyboardType="email-address" autoCapitalize="none" />
                                 
                                 <Text style={styles.sectionTitle}>Domicilio</Text>
                                 <TextInput style={styles.input} placeholder="Calle" value={entityToEdit.domicilio_calle} onChangeText={v => handleFieldChange('domicilio_calle', v)} />
@@ -342,7 +338,7 @@ export default function GestionLegajoScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}><ArrowLeftIcon color={theme.white} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}><ArrowLeftIcon color={themeColors.white} /></TouchableOpacity>
                 <Text style={styles.headerTitle}>{step === 1 ? 'Buscar Habilitación' : (step === 2 ? 'Gestionar Legajo' : 'Editar Datos')}</Text>
                 <View style={styles.headerPlaceholder} />
             </View>
@@ -350,24 +346,24 @@ export default function GestionLegajoScreen() {
             {step === 1 && (
                 <View style={styles.searchContainer}>
                     <View style={styles.searchInputWrapper}>
-                        <SearchIcon color={theme.textSecondary} />
+                        <SearchIcon color={themeColors.textSecondary} />
                         <TextInput style={styles.searchInput} placeholder="Filtrar por Licencia o Titular..." value={searchTerm} onChangeText={setSearchTerm} />
                     </View>
                     <TouchableOpacity style={styles.qrButton} onPress={() => Alert.alert("Próximamente", "La función de escaneo QR estará disponible pronto.")}>
-                        <QrcodeIcon color={theme.primaryDark} />
+                        <QrcodeIcon color={themeColors.primaryDark} />
                     </TouchableOpacity>
                 </View>
             )}
 
             <View style={styles.content}>
-                {isLoading && step !== 1 ? <ActivityIndicator size="large" color={theme.primary} /> : renderStepContent()}
+                {isLoading && step !== 1 ? <ActivityIndicator size="large" color={themeColors.primary} /> : renderStepContent()}
             </View>
 
             {step > 1 && (
                 <View style={styles.footer}>
                     <TouchableOpacity style={styles.backButton} onPress={goBack}><Text style={styles.backButtonText}>Atrás</Text></TouchableOpacity>
                     {step === 3 && (
-                        <TouchableOpacity style={[styles.saveButton, isLoading && {backgroundColor: theme.disabled}]} onPress={handleSave} disabled={isLoading}>
+                        <TouchableOpacity style={[styles.saveButton, isLoading && {backgroundColor: themeColors.textSecondary}]} onPress={handleSave} disabled={isLoading}>
                             <Text style={styles.saveButtonText}>{isLoading ? 'Guardando...' : 'Guardar Cambios'}</Text>
                         </TouchableOpacity>
                     )}
@@ -377,45 +373,45 @@ export default function GestionLegajoScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.background },
-    header: { paddingTop: Platform.OS === 'android' ? 40: 60, paddingBottom: 20, paddingHorizontal: 20, backgroundColor: theme.primary, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+const getStyles = (themeColors: ThemeColors) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: themeColors.background },
+    header: { paddingTop: Platform.OS === 'android' ? 40: 60, paddingBottom: 20, paddingHorizontal: 20, backgroundColor: themeColors.primary, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerBackButton: { padding: 8, },
-    headerTitle: { fontSize: 22, fontWeight: 'bold', color: theme.white, textAlign: 'center', },
+    headerTitle: { fontSize: 22, fontWeight: 'bold', color: themeColors.white, textAlign: 'center', },
     headerPlaceholder: { width: 44, },
-    searchContainer: { padding: 15, paddingTop: 10, backgroundColor: theme.background, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    searchInputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: theme.card, borderRadius: 12, paddingHorizontal: 15, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
-    searchInput: { flex: 1, height: 50, paddingLeft: 10, fontSize: 16, color: theme.textPrimary },
-    qrButton: { backgroundColor: theme.card, height: 50, width: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
+    searchContainer: { padding: 15, paddingTop: 10, backgroundColor: themeColors.background, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    searchInputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.cardBackground, borderRadius: 12, paddingHorizontal: 15, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
+    searchInput: { flex: 1, height: 50, paddingLeft: 10, fontSize: 16, color: themeColors.text },
+    qrButton: { backgroundColor: themeColors.cardBackground, height: 50, width: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
     content: { flex: 1, paddingHorizontal: 15 },
-    emptyText: { textAlign: 'center', color: theme.textSecondary, marginTop: 50, fontSize: 16 },
+    emptyText: { textAlign: 'center', color: themeColors.textSecondary, marginTop: 50, fontSize: 16 },
     gridItem: { flex: 0.5, padding: 8 },
-    card: { backgroundColor: theme.card, borderRadius: 16, padding: 15, height: 160, justifyContent: 'space-between', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, borderWidth: 1, borderColor: theme.border },
-    cardSelect: { backgroundColor: theme.card, borderRadius: 12, padding: 15, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 15, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
-    cardIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.primaryLight, justifyContent: 'center', alignItems: 'center' },
-    cardTitle: { fontSize: 16, fontWeight: '600', color: theme.textPrimary },
-    cardSubtitle: { fontSize: 14, color: theme.textSecondary, marginTop: 2 },
+    card: { backgroundColor: themeColors.cardBackground, borderRadius: 16, padding: 15, height: 160, justifyContent: 'space-between', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, borderWidth: 1, borderColor: themeColors.border },
+    cardSelect: { backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 15, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 15, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
+    cardIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: themeColors.primaryLight, justifyContent: 'center', alignItems: 'center' },
+    cardTitle: { fontSize: 16, fontWeight: '600', color: themeColors.text },
+    cardSubtitle: { fontSize: 14, color: themeColors.textSecondary, marginTop: 2 },
     cardTextContainer: { flex: 1 },
     inputContainer: { marginBottom: 15, position: 'relative', justifyContent: 'center' },
     inputIcon: { position: 'absolute', left: 12, zIndex: 1 },
-    input: { backgroundColor: theme.white, paddingVertical: 15, paddingHorizontal: 15, borderRadius: 10, fontSize: 16, color: theme.textPrimary, borderWidth: 1, borderColor: theme.border },
-    inputDisabled: { backgroundColor: theme.disabled, color: theme.textSecondary, paddingVertical: 15, paddingHorizontal: 40, borderRadius: 10, fontSize: 16, borderWidth: 1, borderColor: theme.border },
-    footer: { flexDirection: 'row', padding: 20, backgroundColor: theme.card, borderTopWidth: 1, borderColor: theme.disabled, gap: 10 },
-    saveButton: { flex: 1, backgroundColor: theme.primary, padding: 15, borderRadius: 12, alignItems: 'center' },
-    saveButtonText: { color: theme.white, fontSize: 16, fontWeight: 'bold' },
-    backButton: { flex: 1, backgroundColor: theme.disabled, padding: 15, borderRadius: 12, alignItems: 'center' },
-    backButtonText: { color: theme.textPrimary, fontSize: 16, fontWeight: 'bold' },
+    input: { backgroundColor: themeColors.cardBackground, paddingVertical: 15, paddingHorizontal: 15, borderRadius: 10, fontSize: 16, color: themeColors.text, borderWidth: 1, borderColor: themeColors.border },
+    inputDisabled: { backgroundColor: themeColors.border, color: themeColors.textSecondary, paddingVertical: 15, paddingHorizontal: 40, borderRadius: 10, fontSize: 16, borderWidth: 1, borderColor: themeColors.border },
+    footer: { flexDirection: 'row', padding: 20, backgroundColor: themeColors.cardBackground, borderTopWidth: 1, borderColor: themeColors.border, gap: 10 },
+    saveButton: { flex: 1, backgroundColor: themeColors.primary, padding: 15, borderRadius: 12, alignItems: 'center' },
+    saveButtonText: { color: themeColors.white, fontSize: 16, fontWeight: 'bold' },
+    backButton: { flex: 1, backgroundColor: themeColors.border, padding: 15, borderRadius: 12, alignItems: 'center' },
+    backButtonText: { color: themeColors.text, fontSize: 16, fontWeight: 'bold' },
     imageContainer: { marginBottom: 20, borderRadius: 12, overflow: 'hidden' },
-    previewImage: { height: 200, backgroundColor: theme.disabled, resizeMode: 'contain' },
+    previewImage: { height: 200, backgroundColor: themeColors.border, resizeMode: 'contain' },
     imageOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', gap: 8 },
-    imageOverlayText: { color: theme.white, fontWeight: 'bold', fontSize: 16 },
-    sectionTitle: { fontSize: 16, fontWeight: '600', color: theme.textSecondary, marginTop: 10, marginBottom: 15, paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: theme.border },
+    imageOverlayText: { color: themeColors.white, fontWeight: 'bold', fontSize: 16 },
+    sectionTitle: { fontSize: 16, fontWeight: '600', color: themeColors.textSecondary, marginTop: 10, marginBottom: 15, paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: themeColors.border },
     pickerContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-    label: { fontSize: 16, color: theme.textSecondary, marginRight: 10, fontWeight: '500' },
-    pickerButton: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, borderWidth: 1, borderColor: theme.border, marginRight: 10, backgroundColor: theme.background },
-    pickerButtonSelected: { backgroundColor: theme.primary, borderColor: theme.primary },
-    pickerText: { color: theme.textPrimary, fontWeight: '500' },
-    pickerTextSelected: { color: theme.white, fontWeight: 'bold' },
-    scanButton: { flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.primary, padding: 15, borderRadius: 12, marginBottom: 20, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1 },
-    scanButtonText: { color: theme.white, fontSize: 18, fontWeight: 'bold' },
+    label: { fontSize: 16, color: themeColors.textSecondary, marginRight: 10, fontWeight: '500' },
+    pickerButton: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, borderWidth: 1, borderColor: themeColors.border, marginRight: 10, backgroundColor: themeColors.background },
+    pickerButtonSelected: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
+    pickerText: { color: themeColors.text, fontWeight: '500' },
+    pickerTextSelected: { color: themeColors.white },
+    scanButton: { backgroundColor: themeColors.primary, borderRadius: 12, padding: 15, marginVertical: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 10 },
+    scanButtonText: { color: themeColors.white, fontSize: 16, fontWeight: 'bold' },
 });

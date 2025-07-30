@@ -1,8 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Platform, StatusBar, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
+
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 // --- Iconos SVG ---
 type IconProps = { color: string; size?: number };
@@ -13,8 +15,7 @@ const TagIcon = ({ color, size = 32 }: IconProps) => <Svg width={size} height={s
 
 
 // --- Componente de Tarjeta de Acción ---
-const TramiteCard = ({ icon, title, subtitle, onPress }: { icon: React.ReactNode; title: string; subtitle: string; onPress: () => void; }) => {
-    const styles = getStyles();
+const TramiteCard = ({ icon, title, subtitle, onPress, styles }: { icon: React.ReactNode; title: string; subtitle: string; onPress: () => void; styles: any }) => {
     return (
         <TouchableOpacity style={styles.card} onPress={onPress}>
             <View style={styles.cardIconContainer}>{icon}</View>
@@ -22,7 +23,7 @@ const TramiteCard = ({ icon, title, subtitle, onPress }: { icon: React.ReactNode
                 <Text style={styles.cardTitle}>{title}</Text>
                 <Text style={styles.cardSubtitle}>{subtitle}</Text>
             </View>
-            <ChevronRightIcon color="#CBD5E1" />
+            <ChevronRightIcon color={styles.cardChevron.color} />
         </TouchableOpacity>
     );
 };
@@ -30,32 +31,34 @@ const TramiteCard = ({ icon, title, subtitle, onPress }: { icon: React.ReactNode
 // --- Pantalla de Selección de Trámite ---
 export default function SeleccionarTramiteScreen() {
     const router = useRouter();
-    const styles = getStyles();
+    const themeColors = useThemeColors();
+    const styles = getStyles(themeColors);
 
     const tramites = [
         {
             title: 'Nueva Inspección',
             subtitle: 'Realizar una inspección de rutina a un vehículo.',
-            icon: <FilePlusIcon color="#0284C7" />,
+            icon: <FilePlusIcon color={themeColors.primary} />,
             onPress: () => router.push('./nueva-inspeccion' as any),
         },
         {
             title: 'Colocar Oblea',
             subtitle: 'Registrar la colocación de una oblea y firmar.',
-            icon: <TagIcon color="#0284C7" />,
+            icon: <TagIcon color={themeColors.primary} />,
             onPress: () => router.push('./obleas' as any),
         },
         {
             title: 'Consultar Historial',
             subtitle: 'Buscar habilitaciones o inspecciones pasadas.',
-            icon: <ClockIcon color="#0284C7" />,
+            icon: <ClockIcon color={themeColors.primary} />,
             onPress: () => router.push('./historial' as any),
         },
     ];
 
     return (
         <SafeAreaView style={styles.mainContainer}>
-            <LinearGradient colors={['#0093D2', '#007AB8']} style={styles.header}>
+            <StatusBar barStyle={themeColors.colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+            <LinearGradient colors={[themeColors.primary, themeColors.primaryDark]} style={styles.header}>
                 <Text style={styles.headerTitle}>Seleccionar Trámite</Text>
                 <Text style={styles.headerSubtitle}>Elige una opción para continuar</Text>
             </LinearGradient>
@@ -67,6 +70,7 @@ export default function SeleccionarTramiteScreen() {
                         title={tramite.title}
                         subtitle={tramite.subtitle}
                         onPress={tramite.onPress}
+                        styles={styles}
                     />
                 ))}
             </ScrollView>
@@ -75,11 +79,11 @@ export default function SeleccionarTramiteScreen() {
 }
 
 // --- Estilos ---
-const getStyles = () => StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: '#F1F5F9' },
+const getStyles = (colors: any) => StyleSheet.create({
+    mainContainer: { flex: 1, backgroundColor: colors.background },
     header: {
         paddingHorizontal: 24,
-        paddingTop: (Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0) + 30,
+        paddingTop: (Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0) + 40,
         paddingBottom: 30,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
@@ -87,23 +91,26 @@ const getStyles = () => StyleSheet.create({
     headerTitle: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.textLight,
     },
     headerSubtitle: {
         fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: colors.textLight,
+        opacity: 0.8,
         marginTop: 4,
     },
     container: {
         padding: 20,
     },
     card: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         padding: 20,
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2, },
         shadowOpacity: 0.08,
@@ -114,7 +121,7 @@ const getStyles = () => StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#E0F2FE',
+        backgroundColor: colors.primaryLight,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
@@ -125,11 +132,14 @@ const getStyles = () => StyleSheet.create({
     cardTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#1E293B',
+        color: colors.text,
     },
     cardSubtitle: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
         marginTop: 4,
     },
+    cardChevron: {
+        color: colors.textSecondary,
+    }
 });
