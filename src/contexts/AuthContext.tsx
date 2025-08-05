@@ -16,14 +16,16 @@ interface ContribuyenteSession {
     dni: string;
     nombre: string;
     token: string;
+    avatarUrl?: string;
 }
 
-interface InternalUserSession {
+export interface InternalUserSession {
     rol: 'admin' | 'inspector';
     email: string;
     nombre: string;
     legajo: string | null;
     token: string;
+    avatarUrl?: string;
 }
 
 export type UserSession = ContribuyenteSession | InternalUserSession | null;
@@ -37,7 +39,7 @@ interface AuthContextType {
     signInWithManual: (licencia: string, dni: string) => Promise<void>;
     signInWithInternal: (identifier: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
-    setPendingCount: (count: number) => void;
+    // setPendingCount removed - not used in the application
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -49,7 +51,6 @@ export const AuthContext = createContext<AuthContextType>({
     signInWithManual: async () => {},
     signInWithInternal: async () => {},
     signOut: async () => {},
-    setPendingCount: () => {},
 });
 
 export const useAuth = () => {
@@ -74,7 +75,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [isSessionLoading, setIsSessionLoading] = useState(true);
-    const [pendingCount, setPendingCount] = useState(0);
+    // We'll implement this in the future for notification badges
+    // const [pendingCount, setPendingCount] = useState(0);
 
     const router = useRouter();
     const segments = useSegments();
@@ -84,7 +86,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             try {
                 const storedSession = await AsyncStorage.getItem('userSession');
                 if (storedSession) {
-                    setUserSession(JSON.parse(storedSession));
+                    const sessionData = JSON.parse(storedSession);
+                    
+                    // Ensure the session has an avatarUrl
+                    if (!sessionData.avatarUrl && sessionData.rol) {
+                        sessionData.avatarUrl = getDefaultAvatarUrl(sessionData.rol);
+                    }
+                    
+                    setUserSession(sessionData);
                 }
             } catch (e) {
                 console.error("Fallo al cargar la sesión.", e);
@@ -118,14 +127,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const handleLoginSuccess = async (data: ContribuyenteSession | InternalUserSession) => {
         try {
-            await AsyncStorage.setItem('userSession', JSON.stringify(data));
-            setUserSession(data);
+            // Add default avatar URL based on role if not provided
+            const enhancedData = {
+                ...data,
+                avatarUrl: data.avatarUrl || getDefaultAvatarUrl(data.rol)
+            };
+            
+            await AsyncStorage.setItem('userSession', JSON.stringify(enhancedData));
+            setUserSession(enhancedData);
             setError('');
         } catch (e) {
             console.error("Fallo al guardar la sesión.", e);
             handleLoginError("No se pudo guardar la sesión de usuario.");
         } finally {
             setIsLoading(false);
+        }
+    };
+    
+    const getDefaultAvatarUrl = (role: string) => {
+        // Return a default avatar URL based on user role
+        switch(role) {
+            case 'admin':
+                return 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff';
+            case 'inspector':
+                return 'https://ui-avatars.com/api/?name=Inspector&background=22C55E&color=fff';
+            case 'contribuyente':
+                return 'https://ui-avatars.com/api/?name=Usuario&background=6366F1&color=fff';
+            default:
+                return 'https://ui-avatars.com/api/?name=User&background=64748B&color=fff';
         }
     };
 
@@ -240,7 +269,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signInWithManual,
         signInWithInternal,
         signOut,
-        setPendingCount,
+        // setPendingCount removed - not implemented/used
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

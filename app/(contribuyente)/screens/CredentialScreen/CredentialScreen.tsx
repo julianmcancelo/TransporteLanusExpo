@@ -206,7 +206,7 @@ export default function CredentialScreen() {
             }
         };
         fetchCredentialDetails();
-    }, [licenseToken]);
+    }, [licenseToken, opacityAnim, scaleAnim]);
 
     const renderContent = () => {
         if (isLoading) {

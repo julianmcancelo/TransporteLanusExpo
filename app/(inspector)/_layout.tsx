@@ -1,12 +1,9 @@
 // app/(inspector)/_layout.tsx
-import { useAuth } from '@/contexts/AuthContext';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import React from 'react';
 
 
 export default function InspectorLayout() {
-    const { signOut } = useAuth();
-    const router = useRouter();
 
     return (
         <Stack

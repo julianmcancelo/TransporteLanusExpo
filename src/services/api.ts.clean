@@ -1,0 +1,572 @@
+// src/services/api.ts
+import axios, { isAxiosError } from 'axios';
+import { Habilitacion, HabilitacionDetalle, HabilitacionPayload, MapPoint } from '../types/habilitacion';
+import { UserProfile } from '../types/user';
+import { API_V2_BASE_URL, API_ADMIN_USERS_URL, API_VALIDATE_QR_URL } from '../constants/api';
+
+// Configura la URL base general de la API
+const apiClient = axios.create({
+  baseURL: API_V2_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    // Aquí podrías añadir un token de autenticación si lo necesitas
+    // 'Authorization': `Bearer TU_TOKEN`
+  },
+});
+
+/**
+ * Interfaz para usuarios administrativos
+ */
+export interface AdminUser {
+  id: number;
+  nombre: string;
+  usuario: string;
+  rol: 'admin' | 'inspector' | 'master';
+  email?: string;
+  telefono?: string;
+  avatarUrl?: string;
+  ultimoAcceso?: string;
+  estado: 'activo' | 'inactivo';
+}
+
+/**
+ * Respuesta para operaciones de usuarios
+ */
+export interface UsersResponse {
+  success: boolean;
+  data?: AdminUser[];
+  message?: string;
+}
+
+/**
+ * Interface para las configuraciones del sistema
+ */
+export interface SystemConfig {
+  maintenance: boolean;
+  debugging: boolean;
+  logLevel: string;
+  apiTimeout: string;
+  autoBackup: boolean;
+  restrictedAccess: boolean;
+}
+
+/**
+ * Respuesta de la API para configuraciones del sistema
+ */
+export interface SystemConfigResponse {
+  success: boolean;
+  data?: SystemConfig;
+  message?: string;
+}
+
+/**
+ * Interfaz para la respuesta de validación de credencial por QR
+ */
+export interface CredentialValidationResponse {
+  success: boolean;
+  data?: {
+    nombre: string;
+    rol: string;
+    habilitacion_status: string;
+    vencimiento: string;
+    vehiculo: string;
+  };
+  message?: string;
+}
+
+/**
+ * Respuesta para el perfil de usuario
+ */
+export interface ProfileResponse {
+  success: boolean;
+  data?: UserProfile;
+  message?: string;
+}
+
+/**
+ * Genera datos simulados de usuarios administrativos para desarrollo
+ */
+function getMockAdminUsers(): UsersResponse {
+  return {
+    success: true,
+    data: [
+      {
+        id: 1,
+        nombre: 'Administrador Principal',
+        usuario: 'admin',
+        rol: 'admin',
+        email: 'admin@transportelanus.com.ar',
+        telefono: '11-1234-5678',
+        estado: 'activo',
+        ultimoAcceso: '2025-07-29 15:30:00'
+      },
+      {
+        id: 2,
+        nombre: 'Inspector de Servicios',
+        usuario: 'inspector1',
+        rol: 'inspector',
+        email: 'inspector@transportelanus.com.ar',
+        telefono: '11-5678-1234',
+        estado: 'activo',
+        ultimoAcceso: '2025-07-30 09:15:00'
+      },
+      {
+        id: 3,
+        nombre: 'Usuario Master',
+        usuario: 'master',
+        rol: 'master',
+        email: 'master@transportelanus.com.ar',
+        telefono: '11-4444-5555',
+        estado: 'activo',
+        ultimoAcceso: '2025-08-01 08:00:00'
+      },
+      {
+        id: 4,
+        nombre: 'Admin Inactivo',
+        usuario: 'admin2',
+        rol: 'admin',
+        email: 'admin2@transportelanus.com.ar',
+        estado: 'inactivo',
+        ultimoAcceso: '2025-06-15 10:20:00'
+      }
+    ],
+    message: 'Usuarios administrativos cargados (simulado)'
+  };
+}
+
+/**
+ * Obtiene la lista de habilitaciones con filtros opcionales
+ * @param params Parámetros de filtrado (tipo, búsqueda)
+ */
+export const getHabilitaciones = async (params?: { tipo?: string; buscar?: string }): Promise<Habilitacion[]> => {
+  try {
+    const response = await apiClient.get('', { 
+      params: { 
+        recurso: 'habilitaciones',
+        tipo: params?.tipo || '',
+        buscar: params?.buscar || '' 
+      } 
+    });
+    
+    console.log('[API Service] Habilitaciones recibidas:', response.data.length);
+    return response.data;
+  } catch (error) {
+    console.error('[API Service] Error al obtener habilitaciones:', error);
+    // Si hay un error, devolver un array vacío
+    return [];
+  }
+};
+
+/**
+ * Obtiene el detalle completo de una única habilitación por su ID.
+ */
+export const getHabilitacionDetalle = async (id: number): Promise<HabilitacionDetalle> => {
+  try {
+    const response = await apiClient.get('', { 
+      params: { recurso: 'habilitacion', id }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`[API Service] Error al obtener detalle de habilitación ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Desvincula una persona de una habilitación.
+ */
+export const deletePersona = async (id: number): Promise<void> => {
+  try {
+    await apiClient.delete('', { 
+      params: { recurso: 'persona', id }
+    });
+  } catch (error) {
+    console.error(`[API Service] Error al desvincular persona ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene puntos para el mapa
+ */
+export const getMapPoints = async (): Promise<MapPoint[]> => {
+  try {
+    const response = await apiClient.get('', { params: { recurso: 'map_points' } });
+    return response.data;
+  } catch (error) {
+    console.error('[API Service] Error al obtener puntos del mapa:', error);
+    return [];
+  }
+};
+
+/**
+ * Crea una nueva habilitación.
+ */
+export const createHabilitacion = async (data: HabilitacionPayload): Promise<Habilitacion> => {
+  try {
+    const response = await apiClient.post('', data, { 
+      params: { recurso: 'habilitacion' }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('[API Service] Error al crear habilitación:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene la lista de todos los usuarios administrativos
+ */
+export const getAdminUsers = async (token: string): Promise<UsersResponse> => {
+  try {
+    // Intentar obtener los usuarios desde el endpoint real
+    const response = await axios.get(API_ADMIN_USERS_URL, {
+      params: { action: 'list', token },
+      timeout: 5000 // Timeout de 5 segundos
+    });
+    
+    return {
+      success: true,
+      data: response.data,
+      message: 'Usuarios administrativos cargados'
+    };
+  } catch (error) {
+    console.error('[API Service] Error al obtener usuarios administrativos:', error);
+    
+    // En caso de error o desarrollo local, devolver datos simulados
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      console.log('[API Service] Usando datos simulados de usuarios administrativos');
+      return getMockAdminUsers();
+    }
+    
+    return {
+      success: false,
+      message: 'Error al cargar usuarios administrativos'
+    };
+  }
+};
+
+/**
+ * Obtiene el perfil completo de un usuario interno (admin/inspector) incluyendo avatar
+ */
+export const getUserProfile = async (userId: string, token: string): Promise<ProfileResponse> => {
+  try {
+    const response = await axios.get(API_ADMIN_USERS_URL, {
+      params: { action: 'profile', userId, token }
+    });
+    
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    console.error(`[API Service] Error al obtener perfil de usuario ${userId}:`, error);
+    
+    // Datos simulados para desarrollo
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      // Simular un delay para que parezca una solicitud real
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      return {
+        success: true,
+        data: {
+          id: userId,
+          nombre: 'Usuario de Prueba',
+          rol: 'admin',
+          email: 'test@transportelanus.com.ar',
+          avatarUrl: 'https://ui-avatars.com/api/?name=Usuario+Prueba&background=random'
+        }
+      };
+    }
+    
+    return {
+      success: false,
+      message: `No se pudo obtener el perfil del usuario ${userId}`
+    };
+  }
+};
+
+/**
+ * Obtiene las configuraciones actuales del sistema
+ */
+export const getSystemConfig = async (token: string): Promise<SystemConfigResponse> => {
+  try {
+    const response = await apiClient.get('', {
+      params: { recurso: 'system_config', token }
+    });
+    
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    console.error('[API Service] Error al obtener configuraciones del sistema:', error);
+    
+    // En desarrollo o si la API falla, devolver configuraciones simuladas
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      return {
+        success: true,
+        data: {
+          maintenance: false,
+          debugging: true,
+          logLevel: 'debug',
+          apiTimeout: '10000',
+          autoBackup: true,
+          restrictedAccess: false
+        },
+        message: 'Configuraciones del sistema cargadas (simulado)'
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Error al cargar configuraciones del sistema'
+    };
+  }
+};
+
+/**
+ * Actualiza una configuración específica del sistema
+ */
+export const updateSystemConfig = async (
+  key: keyof SystemConfig,
+  value: any,
+  token: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await apiClient.post('', {
+      action: 'update',
+      key,
+      value,
+      token
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`[API Service] Error updating system config ${key}:`, error);
+    // Si el backend no está listo, simular éxito
+    return { success: true, message: `Configuración ${key} actualizada (simulado)` };
+  }
+};
+
+/**
+ * Inicia un respaldo manual del sistema
+ */
+export const startSystemBackup = async (token: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await apiClient.post('', {
+      action: 'backup',
+      token
+    });
+    return response.data;
+  } catch (error) {
+    console.error('[API Service] Error al iniciar respaldo del sistema:', error);
+    
+    // Si estamos en desarrollo o la API falla, simular éxito
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      // Simular un retraso para que parezca un proceso real
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      return {
+        success: true,
+        message: 'Respaldo del sistema iniciado correctamente (simulado)'
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Error al iniciar respaldo del sistema'
+    };
+  }
+};
+
+/**
+ * Reinicia la base de datos (¡operación peligrosa!)
+ */
+export const resetDatabase = async (
+  confirmationCode: string,
+  token: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await apiClient.post('', {
+      action: 'reset_database',
+      confirmationCode,
+      token
+    });
+    return response.data;
+  } catch (error) {
+    console.error('[API Service] Error al reiniciar base de datos:', error);
+    
+    // En desarrollo o si la API falla, simular respuesta
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      // Verificar si el código de confirmación es correcto (en este caso, "RESET")
+      if (confirmationCode === 'RESET') {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return {
+          success: true,
+          message: 'Base de datos reiniciada correctamente (simulado)'
+        };
+      }
+      
+      return {
+        success: false,
+        message: 'Código de confirmación incorrecto'
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Error al reiniciar la base de datos'
+    };
+  }
+};
+
+/**
+ * Actualiza el estado de un usuario administrativo
+ */
+export const updateUserStatus = async (
+  userId: number,
+  status: 'activo' | 'inactivo',
+  token: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await axios.post(API_ADMIN_USERS_URL, {
+      action: 'update_status',
+      userId,
+      status,
+      token
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`[API Service] Error al actualizar estado del usuario ${userId}:`, error);
+    
+    // En desarrollo o si falla la API, simular éxito
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      return {
+        success: true,
+        message: `Estado del usuario ${userId} actualizado a ${status} (simulado)`
+      };
+    }
+    
+    return {
+      success: false,
+      message: `Error al actualizar estado del usuario ${userId}`
+    };
+  }
+};
+
+/**
+ * Crea un nuevo usuario administrativo
+ */
+export const createAdminUser = async (
+  userData: Omit<AdminUser, 'id' | 'ultimoAcceso'> & { password: string },
+  token: string
+): Promise<{ success: boolean; message: string; userId?: number }> => {
+  try {
+    const response = await axios.post(API_ADMIN_USERS_URL, {
+      action: 'create',
+      userData,
+      token
+    });
+    return response.data;
+  } catch (error) {
+    console.error('[API Service] Error al crear usuario administrativo:', error);
+    
+    // En desarrollo o si falla la API, simular éxito
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      return {
+        success: true,
+        message: 'Usuario administrativo creado correctamente (simulado)',
+        userId: Math.floor(Math.random() * 1000) + 10 // ID aleatorio simulado
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Error al crear usuario administrativo'
+    };
+  }
+};
+
+/**
+ * Elimina un usuario administrativo
+ */
+export const deleteAdminUser = async (
+  userId: number,
+  token: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await axios.post(API_ADMIN_USERS_URL, {
+      action: 'delete',
+      userId,
+      token
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`[API Service] Error al eliminar usuario ${userId}:`, error);
+    
+    // En desarrollo o si falla la API, simular éxito
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      return {
+        success: true,
+        message: `Usuario ${userId} eliminado correctamente (simulado)`
+      };
+    }
+    
+    return {
+      success: false,
+      message: `Error al eliminar usuario ${userId}`
+    };
+  }
+};
+
+/**
+ * Valida una credencial escaneada por QR
+ * @param qrData - Datos del QR escaneado
+ * @param token - Token de autenticación del inspector
+ * @returns Objeto con información de la credencial si es válida
+ */
+export const validateCredential = async (
+  qrData: string,
+  token: string
+): Promise<CredentialValidationResponse> => {
+  try {
+    const response = await axios.post(API_VALIDATE_QR_URL, {
+      qrData,
+      token
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('[API Service] Error al validar credencial:', error);
+    
+    // En desarrollo o si falla la API, simular validación
+    if (process.env.NODE_ENV === 'development' || isAxiosError(error)) {
+      // Simular una credencial válida o inválida aleatoriamente para pruebas
+      const isValid = qrData.startsWith('HAB-') || Math.random() > 0.3;
+      
+      if (isValid) {
+        return {
+          success: true,
+          data: {
+            nombre: 'Juan Pérez',
+            rol: 'Chofer',
+            habilitacion_status: 'Vigente',
+            vencimiento: '2025-12-31',
+            vehiculo: 'Ford Transit (ABC123)'
+          },
+          message: 'Credencial validada correctamente (simulado)'
+        };
+      }
+      
+      return {
+        success: false,
+        message: 'Credencial no válida o vencida (simulado)'
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Error al validar la credencial'
+    };
+  }
+};

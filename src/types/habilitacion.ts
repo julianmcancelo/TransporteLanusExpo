@@ -99,3 +99,47 @@ export interface Persona {
    * Estructura de datos para crear una nueva habilitación.
    */
   export type HabilitacionPayload = Omit<Habilitacion, 'habilitacion_id' | 'personas' | 'vehiculos' | 'establecimientos' | 'titular_principal'>;
+
+  // --- Interfaces para el Formulario de Inspección ---
+
+  /**
+   * Define la estructura de los datos de localización para una foto.
+   */
+  export interface LocationData {
+    latitude: number;
+    longitude: number;
+    timestamp: number;
+  }
+
+  /**
+   * Representa una foto tomada durante la inspección.
+   */
+  export interface Photo {
+    uri: string;
+    base64?: string; // Para el envío a la API
+    location: LocationData | null;
+    item_id: string; // ID del ítem de inspección asociado
+  }
+
+  /**
+   * Representa un único ítem a verificar en la inspección.
+   */
+  export interface InspectionItem {
+    id: string;
+    category: string;
+    description: string;
+    state: 'OK' | 'NO' | 'NA';
+    observation: string;
+  }
+
+  /**
+   * Representa el trámite de inspección que se pasa entre pantallas.
+   */
+  export interface Tramite {
+    id: number;
+    nro_licencia: string;
+    nombre_titular: string;
+    dominio: string;
+    tipo_inspeccion: 'escolar' | 'remis' | 'taxi';
+    items: InspectionItem[];
+  }

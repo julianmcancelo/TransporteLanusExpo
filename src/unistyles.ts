@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importa UnistylesRegistry en lugar de createUnistyles
+import { UnistylesRegistry } from 'react-native-unistyles';
 
 // Las definiciones de tu tema siguen siendo las mismas
 const colors = {

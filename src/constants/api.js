@@ -18,6 +18,12 @@ export const API_INSPECCIONES_BASE_URL = 'https://credenciales.transportelanus.c
 // URL del sitio público para verificación de credenciales.
 export const PUBLIC_SITE_BASE_URL = 'https://credenciales.transportelanus.com.ar';
 
+// -----------------------------------------------------------------
+// --- Endpoints Específicos ---
+// -----------------------------------------------------------------
+
+// Endpoint para validación de QR por inspectores.
+export const ENDPOINT_VALIDAR_QR = `${API_V2_BASE_URL}/validar_qr.php`;
 
 // =================================================================
 // --- URLs Públicas ---
@@ -48,6 +54,7 @@ export const API_INSPECCIONES_URL = `${API_INSPECCIONES_BASE_URL}/get_turnos_pen
 // --- Habilitaciones y Credenciales ---
 export const API_LICENSES_URL = `${API_V2_BASE_URL}/get_habilitaciones_por_dni.php`;
 export const API_CREDENTIAL_DETAILS_URL = `${API_V2_BASE_URL}/get_credential_details.php`;
+export const API_VALIDATE_QR_URL = `${API_V2_BASE_URL}/validate_credential_qr.php`; // Endpoint para validar credenciales mediante QR
 
 // --- Notificaciones ---
 export const API_NOTIFICATIONS_URL = `${API_V2_BASE_URL}/get_notificaciones_por_dni.php`;
@@ -74,3 +81,6 @@ export const API_SAVE_INSPECTION_URL = `${API_INSPECCIONES_BASE_URL}/guardar_ins
 
 // --- Historial ---
 export const API_HISTORY_DATA_URL = `${API_INSPECCIONES_BASE_URL}/ver_historial.php`;
+
+// --- Gestión de Usuarios (Master) ---
+export const API_ADMIN_USERS_URL = `${API_V2_BASE_URL}/admin_users.php`;

@@ -8,6 +8,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useAuth } from '@/contexts/AuthContext';
+import QRScannerModal from '@/components/QRScannerModal';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -35,6 +36,7 @@ const UploadCloudIcon = ({ color }: IconProps) => <Svg width={24} height={24} vi
 const TagIcon = ({ color }: IconProps) => <Svg width={28} height={28} viewBox="0 0 24 24" fill="none"><Path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L3 13V4h9l7.59 7.59a2 2 0 010 2.82z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M7 7h.01" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 // --- AÑADIDO: Ícono para Actualizar Datos ---
 const UserCheckIcon = ({ color }: IconProps) => <Svg width={28} height={28} viewBox="0 0 24 24" fill="none"><Path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Circle cx="8.5" cy="7.5" r="4.5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M17 11l2 2 4-4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+const QrCodeIcon = ({ color }: IconProps) => <Svg width={28} height={28} viewBox="0 0 24 24" fill="none"><Path d="M3 11h2v2H3v-2zm2-2h2v2H5V9zm-2 2h2v2H3v-2zm-2-2h2v2H1v-2zm10-4h2v2h-2V5zm-2 2h2v2h-2V7zm-2-2h2v2H7V5zm8 2h2v2h-2V7zm-2-2h2v2h-2V5zm-2 2h2v2h-2V7zm-2-2h2v2H9V5zm-2 8h2v2H7v-2zm2 2h2v2H9v-2zm2-2h2v2h-2v-2zm-2-2h2v2H9v-2zm-2 2h2v2H7v-2zm-2-2h2v2H5v-2zm10 0h2v2h-2v-2zm2-2h2v2h-2V9z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 
 const Clock = ({ styles }: { styles: any }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -126,6 +128,7 @@ export default function InspectorScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [hasPerformedInitialCache, setHasPerformedInitialCache] = useState(false);
     const [offlineDataStatus, setOfflineDataStatus] = useState<string | null>(null);
+    const [isQRScannerVisible, setIsQRScannerVisible] = useState(false);
 
     const cacheOfflineData = useCallback(async (isAutomatic: boolean = false) => {
         if (!isAutomatic) setIsUpdatingOfflineData(true);
@@ -228,6 +231,8 @@ export default function InspectorScreen() {
     const navigateToReportSending = () => Alert.alert("Próximamente", "Esta función aún no está implementada.");
     // --- AÑADIDO: Navegación para Actualizar Datos ---
     const navigateToUpdateData = () => router.push('/(inspector)/gestion-legajo' as any);
+    // Abre el modal del escáner QR en lugar de navegar a una pantalla completa
+    const openQRScanner = () => setIsQRScannerVisible(true);
 
     return (
         <SafeAreaView style={styles.mainContainer}>
@@ -266,6 +271,7 @@ export default function InspectorScreen() {
                         onPress={navigateToUpdateData} 
                         styles={styles} 
                     />
+                    {/* QR validation card removed in favor of floating action button */}
                 </View>
                 
                 <ActionCard icon={<SendIcon color={themeColors.primary} />} title="Envío de Reportes" subtitle="Enviar copia por email" onPress={navigateToReportSending} styles={styles} fullWidth />
@@ -291,6 +297,21 @@ export default function InspectorScreen() {
                     {offlineDataStatus ? 'Fuerza la actualización de datos para trabajar sin conexión.' : 'Guarda los datos necesarios para trabajar sin conexión.'}
                 </Text>
             </ScrollView>
+            
+            {/* Floating QR Scanner Button */}
+            <TouchableOpacity 
+                style={styles.floatingButton} 
+                onPress={openQRScanner}
+            >
+                <QrCodeIcon color="#ffffff" />
+                <Text style={styles.floatingButtonText}>QR</Text>
+            </TouchableOpacity>
+            
+            {/* QR Scanner Modal */}
+            <QRScannerModal
+                isVisible={isQRScannerVisible}
+                onClose={() => setIsQRScannerVisible(false)}
+            />
         </SafeAreaView>
     );
 }
@@ -327,6 +348,28 @@ const getStyles = (colors: any, colorScheme: string) => StyleSheet.create({
     separator: { height: 1, backgroundColor: colors.border, marginVertical: 25, marginHorizontal: 20 },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingHorizontal: 20 },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginLeft: 10 },
+    floatingButton: {
+        position: 'absolute',
+        right: 0,
+        top: '50%',
+        backgroundColor: colors.primary,
+        padding: 12,
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 20,
+        flexDirection: 'column',
+        alignItems: 'center',
+        elevation: 5,
+        shadowColor: colors.black,
+        shadowOffset: { width: -2, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+    },
+    floatingButtonText: {
+        color: colors.white,
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginTop: 4,
+    },
     offlineStatusContainerSuccess: { backgroundColor: 'rgba(40, 167, 69, 0.1)', padding: 12, borderRadius: 10, marginHorizontal: 20, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(40, 167, 69, 0.3)' },
     offlineStatusContainerEmpty: { backgroundColor: 'rgba(255, 193, 7, 0.1)', padding: 12, borderRadius: 10, marginHorizontal: 20, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(255, 193, 7, 0.3)' },
     offlineStatusText: { textAlign: 'center', fontSize: 13, color: colors.text, fontWeight: '500' },

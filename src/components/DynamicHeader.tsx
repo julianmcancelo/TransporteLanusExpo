@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 // import { BlurView } from '@react-native-community/blur'; 
 import { router } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Searchbar } from 'react-native-paper';
 import Reanimated, {
     interpolate,
@@ -39,7 +39,7 @@ const getGreeting = () => {
 // --- Props del Componente ---
 interface DynamicHeaderProps {
     scrollY: Reanimated.SharedValue<number>;
-    userSession: { nombre?: string } | null;
+    userSession: { nombre?: string, avatarUrl?: string } | null;
     searchQuery: string;
     onSearchChange: (query: string) => void;
     onLogout: () => void;
@@ -103,6 +103,7 @@ export const DynamicHeader = ({ scrollY, userSession, searchQuery, onSearchChang
 
     const userInitial = userSession?.nombre ? userSession.nombre.substring(0, 1).toUpperCase() : 'U';
     const firstName = userSession?.nombre?.split(' ')[0] || 'Usuario';
+    const hasAvatar = !!userSession?.avatarUrl;
 
     return (
         <Reanimated.View style={[styles.header, { paddingTop: insets.top }, headerStyle]}>
@@ -111,7 +112,15 @@ export const DynamicHeader = ({ scrollY, userSession, searchQuery, onSearchChang
             <View style={styles.topBar}>
                 <View style={styles.topBarLeft}>
                     <Reanimated.View style={[styles.avatar, avatarStyle]}>
-                       <Text style={styles.avatarText}>{userInitial}</Text>
+                        {hasAvatar ? (
+                            <Image 
+                                source={{ uri: userSession?.avatarUrl }} 
+                                style={{ width: '100%', height: '100%', borderRadius: 100 }}
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <Text style={styles.avatarText}>{userInitial}</Text>
+                        )}
                     </Reanimated.View>
                     <View style={styles.userInfo}>
                        <Reanimated.View style={[styles.greetingContainer, expandedInfoStyle]}>

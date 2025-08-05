@@ -33,7 +33,7 @@ const AnimatedShape = ({ style, delay }) => {
     const anim = useRef(new Animated.Value(0)).current;
     useEffect(() => {
         Animated.loop(Animated.timing(anim, { toValue: 1, duration: 15000 + delay, easing: Easing.linear, useNativeDriver: true })).start();
-    }, [anim, delay]);
+    }, []);
     const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [200, -200] });
     const opacity = anim.interpolate({ inputRange: [0, 0.1, 0.9, 1], outputRange: [0, 1, 1, 0] });
     const scale = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.2, 1] });
@@ -52,7 +52,7 @@ const ContactModal = ({ visible, onClose, themeColors }) => {
     useEffect(() => {
         if (visible) { Animated.spring(modalAnim, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start(); } 
         else { Animated.timing(modalAnim, { toValue: 0, duration: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }).start(); }
-    }, [visible, modalAnim]);
+    }, [visible]);
     const modalTranslateY = modalAnim.interpolate({ inputRange: [0, 1], outputRange: [800, 0] });
     if (!visible) return null;
     return (
@@ -137,13 +137,13 @@ const LoginScreen = () => {
                 Animated.timing(subtitleAnim, { toValue: 1, duration: 700, easing: Easing.out(Easing.ease), useNativeDriver: true }),
             ]).start();
         }
-    }, [viewMode, logoAnim, titleAnim, subtitleAnim]);
+    }, [viewMode]);
 
     useEffect(() => {
         if (error) {
             Alert.alert("Error de Ingreso", error, [{ text: "Reintentar", onPress: () => signOut() }]);
         }
-    }, [error, signOut]);
+    }, [error]);
 
     const handleManualLogin = () => {
         if (!licencia.trim() || !dni.trim()) { Alert.alert("Campos incompletos", "Por favor, ingrese su DNI y N° de Licencia."); return; }
