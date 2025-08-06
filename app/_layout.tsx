@@ -10,11 +10,17 @@ import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
+import { CustomThemeProvider, useTheme } from '../src/contexts/ThemeContext';
 
 const queryClient = new QueryClient();
 
 // Mantiene visible la pantalla de bienvenida nativa mientras cargamos los recursos
 SplashScreen.preventAutoHideAsync();
+
+// NOTA: Para eliminar completamente el logo de Expo, es necesario crear una build de desarrollo o producción
+// El logo de Expo solo aparece cuando se ejecuta la app dentro de Expo Go
+// Para crear una build de desarrollo: npx expo prebuild
+// Para crear una build de producción: eas build --platform android (o ios)
 
 // --- COMPONENTE DE SPLASH SCREEN CON ESTÉTICA MEJORADA ---
 function CustomSplashScreen() {
@@ -77,63 +83,54 @@ function CustomSplashScreen() {
 
 // --- LÓGICA DE NAVEGACIÓN CON 3 SEGUNDOS DE DURACIÓN MÍNIMA ---
 function RootLayoutNav() {
-  const { userSession, isLoading } = useAuth();
+  const { session, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
-  // Estados para controlar las dos condiciones: carga de datos y tiempo mínimo
-  const [isAuthLoaded, setAuthLoaded] = useState(false);
-  const [isMinTimePassed, setMinTimePassed] = useState(false);
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
+  const [isMinTimePassed, setIsMinTimePassed] = useState(false);
 
-  // 1. Efecto para el temporizador de 3 segundos
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMinTimePassed(true);
-    }, 3000); // 3000 milisegundos = 3 segundos
-
-    // Limpia el temporizador si el componente se desmonta antes de tiempo
-    return () => clearTimeout(timer);
-  }, []); // El array vacío asegura que este efecto se ejecute solo una vez
-
-  // 2. Efecto para monitorear la carga de la autenticación
   useEffect(() => {
     if (!isLoading) {
-      setAuthLoaded(true);
+      setIsAuthLoaded(true);
     }
   }, [isLoading]);
 
-  // Efecto para la redirección: se ejecuta solo cuando el splash ha terminado
   useEffect(() => {
-    // No hacer nada si todavía estamos mostrando el splash
+    const timer = setTimeout(() => {
+      setIsMinTimePassed(true);
+    }, 2000); // 2 segundos de splash screen
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     if (!isAuthLoaded || !isMinTimePassed) {
       return;
     }
 
     const inApp = segments[0] === '(admin)' || segments[0] === '(inspector)' || segments[0] === '(contribuyente)';
 
-    if (userSession && !inApp) {
+    if (session && !inApp) {
       let targetDashboard = '/login'; // Ruta por defecto
-      if (userSession.rol === 'admin') {
+      if (session.rol === 'admin') {
         targetDashboard = '/(admin)/dashboard';
-      } else if (userSession.rol === 'inspector') {
+      } else if (session.rol === 'inspector') {
         targetDashboard = '/(inspector)/inspecciones';
-      } else if (userSession.rol === 'contribuyente') {
-        targetDashboard = '/(contribuyente)/dashboard';
-      } else if (userSession.rol === 'master') {
+      } else if (session.rol === 'contribuyente') {
+        targetDashboard = '/(contribuyente)/home';
+      } else if (session.rol === 'master') {
         targetDashboard = '/(master)/dashboard';
       }
       router.replace(targetDashboard as any);
-    } else if (!userSession && inApp) {
+    } else if (!session && inApp) {
       router.replace('/login' as any);
     }
-  }, [isAuthLoaded, isMinTimePassed, userSession, segments, router]);
+  }, [isAuthLoaded, isMinTimePassed, session, segments, router]);
 
-  // Mostrar el splash hasta que AMBAS condiciones (tiempo y carga) se cumplan
   if (!isAuthLoaded || !isMinTimePassed) {
     return <CustomSplashScreen />;
   }
 
-  // Cuando ambas condiciones son verdaderas, mostrar la app
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
@@ -149,33 +146,40 @@ function RootLayoutNav() {
 // --- COMPONENTE RAÍZ PRINCIPAL ---
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    // Aquí puedes añadir tus fuentes personalizadas si las tienes
     // 'Inter-Bold': require('../assets/fonts/Inter-Bold.otf'),
   });
 
-  // Oculta la pantalla de bienvenida nativa una vez que las fuentes están cargadas.
   const onLayoutRootView = useCallback(async () => {
     if (loaded || error) {
       await SplashScreen.hideAsync();
     }
   }, [loaded, error]);
 
-  // No renderizar nada hasta que las fuentes estén listas
   if (!loaded && !error) {
     return null;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      <StatusBar style="light" />
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
-          <PaperProvider>
-            <RootLayoutNav />
-          </PaperProvider>
+          <CustomThemeProvider>
+            <ThemedApp />
+          </CustomThemeProvider>
         </QueryClientProvider>
       </AuthProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function ThemedApp() {
+  const { theme, isDarkTheme } = useTheme();
+
+  return (
+    <PaperProvider theme={theme}>
+      <StatusBar style={isDarkTheme ? 'light' : 'dark'} />
+      <RootLayoutNav />
+    </PaperProvider>
   );
 }
 

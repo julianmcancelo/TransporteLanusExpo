@@ -4,17 +4,18 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
+    Dimensions,
     Easing,
     LayoutAnimation,
     Platform,
     RefreshControl,
     SafeAreaView,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -23,8 +24,8 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { API_INSPECCIONES_URL } from '@/constants/api';
-import { useThemeColors } from '@/hooks/useThemeColors';
+import { API_TRAMITES_URL } from '@/constants/api';
+import { Colors } from '@/constants/Colors';
 import type { Vehiculo } from '../../src/types/habilitacion';
 
 // --- Configuración de Animación para Android ---
@@ -37,14 +38,24 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // ====================================================================================
 
 interface Habilitacion {
-    id: string;
+    id: number;
     nro_licencia: string;
-    estado: 'Vigente' | 'Vencida' | 'En Proceso' | string;
+    estado: string;
     tipo_transporte: string;
-    expte: string;
+    vigencia_fin: string;
+    is_deleted: number;
 }
-interface Titular { nombre: string; dni: string; }
-interface Turno { fecha: string; hora: string; estado: string; }
+interface Titular { 
+    nombre: string; 
+    email: string;
+    telefono: string;
+}
+interface Turno { 
+    id: number;
+    fecha: string; 
+    hora: string; 
+    estado: string; 
+}
 interface Tramite {
     habilitacion: Habilitacion;
     titular: Titular | null;
@@ -127,12 +138,21 @@ const InfoRow = ({ label, value, icon, styles }: { label: string, value: string 
 };
 
 const StatusBadge = ({ estado, themeColors, styles }: { estado: Habilitacion['estado'], themeColors: any, styles: any }) => {
-    const statusInfo = {
-        Vigente: { color: themeColors.success, label: 'Vigente' },
-        Vencida: { color: themeColors.error, label: 'Vencida' },
-        'En Proceso': { color: themeColors.warning, label: 'En Proceso' },
+    // Handle various status values that might come from the database
+    const statusInfo: Record<string, { color: string, label: string }> = {
+        'VIGENTE': { color: themeColors.success, label: 'Vigente' },
+        'VENCIDA': { color: themeColors.error, label: 'Vencida' },
+        'VENCIDO': { color: themeColors.error, label: 'Vencida' },
+        'EN_PROCESO': { color: themeColors.warning, label: 'En Proceso' },
+        'EN PROCESO': { color: themeColors.warning, label: 'En Proceso' },
+        'PENDIENTE': { color: themeColors.warning, label: 'Pendiente' },
+        'ACTIVA': { color: themeColors.success, label: 'Activa' },
+        'ACTIVO': { color: themeColors.success, label: 'Activo' },
+        'INACTIVA': { color: themeColors.error, label: 'Inactiva' },
+        'INACTIVO': { color: themeColors.error, label: 'Inactivo' },
+        // Fallback for any other status
     };
-    const currentStatus = statusInfo[estado as keyof typeof statusInfo] || { color: themeColors.grayMedium, label: estado };
+    const currentStatus = statusInfo[estado?.toUpperCase()] || { color: themeColors.primary, label: estado || 'Sin Estado' };
     return (
         <View style={[styles.statusBadge, { backgroundColor: currentStatus.color }]}>
             <Text style={styles.statusBadgeText}>{currentStatus.label}</Text>
@@ -172,7 +192,16 @@ const InspectionCard = ({ item, onPress, themeColors, styles }: { item: Tramite,
 
 export default function SelectInspectionScreen() {
     const router = useRouter();
-    const themeColors = useThemeColors();
+    const colorScheme: 'light' | 'dark' = 'light'; // You can use useColorScheme() if needed
+    const themeColors = {
+        ...Colors[colorScheme],
+        primary: '#00AEEF',
+        primaryDark: '#008ACD',
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        grayMedium: '#6B7280'
+    };
     const styles = getStyles(themeColors);
 
     const [tramites, setTramites] = useState<Tramite[]>([]);
@@ -185,25 +214,29 @@ export default function SelectInspectionScreen() {
         if (!isRefresh && tramites.length === 0) setIsLoading(true);
         setError(null);
         setDataSource(null);
+        
         try {
-            const response = await fetch(API_INSPECCIONES_URL, {
+            const response = await fetch(API_TRAMITES_URL, {
                 cache: 'no-cache',
                 headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
             });
-            if (!response.ok) throw new Error('No se pudo conectar al servidor.');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: No se pudo conectar al servidor.`);
+            }
 
             const result = await response.json();
+            
             if (result.status === 'success') {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 const data = result.data || [];
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 setTramites(data);
                 setDataSource('cloud');
                 await AsyncStorage.setItem('@tramites_cache', JSON.stringify(data));
             } else {
                 throw new Error(result.message || 'No se pudieron cargar los trámites.');
             }
-        } catch (e: any) {
-            console.log("Error de red, intentando cargar desde caché:", e.message);
+        } catch {
             try {
                 const cachedData = await AsyncStorage.getItem('@tramites_cache');
                 if (cachedData) {
@@ -232,10 +265,17 @@ export default function SelectInspectionScreen() {
 
     const groupedData = useMemo(() => {
         if (!tramites || tramites.length === 0) return {};
-        const sortedData = [...tramites].sort((a, b) => new Date(a.turno?.fecha as string).getTime() - new Date(b.turno?.fecha as string).getTime());
+        
+        const sortedData = [...tramites].sort((a, b) => {
+            const dateA = a.turno?.fecha ? new Date(a.turno.fecha + 'T00:00:00').getTime() : 0;
+            const dateB = b.turno?.fecha ? new Date(b.turno.fecha + 'T00:00:00').getTime() : 0;
+            return dateA - dateB;
+        });
+        
         return sortedData.reduce((acc, item) => {
             const date = item.turno?.fecha ? new Date(item.turno.fecha + 'T00:00:00') : null;
             const groupKey = date ? `Turnos para ${date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric' })}` : "Sin Fecha Asignada";
+            
             if (!acc[groupKey]) acc[groupKey] = [];
             acc[groupKey].push(item);
             return acc;
@@ -279,9 +319,23 @@ export default function SelectInspectionScreen() {
         );
     };
 
+    // Android-specific container style to ensure content is below status bar
+    const androidContainerStyle = {
+        flex: 1,
+        backgroundColor: themeColors.background,
+        ...(Platform.OS === 'android' && {
+            paddingTop: StatusBar.currentHeight || 0,
+        })
+    };
+
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar style={themeColors.colorScheme === 'dark' ? 'light' : 'dark'} backgroundColor={themeColors.background} translucent={false} />
+        <View style={androidContainerStyle}>
+            <StatusBar 
+                barStyle='dark-content'
+                backgroundColor={themeColors.background} 
+                translucent={false}
+            />
+            <SafeAreaView style={styles.safeArea}>
             <Stack.Screen
                 options={{
                     title: "Seleccionar Trámite",
@@ -311,7 +365,8 @@ export default function SelectInspectionScreen() {
             <View style={styles.listContainer}>
                 {renderContent()}
             </View>
-        </SafeAreaView>
+            </SafeAreaView>
+        </View>
     );
 }
 
@@ -319,44 +374,71 @@ export default function SelectInspectionScreen() {
 // --- Estilos (StyleSheet) ---
 // ====================================================================================
 
+// Get screen dimensions for responsive scaling
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 375;
+const isTablet = screenWidth > 768;
+
+// Responsive scaling functions
+const scale = (size: number) => (screenWidth / 375) * size;
+const verticalScale = (size: number) => (screenHeight / 812) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
 const getStyles = (colors: any) => StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: colors.background },
+    container: { 
+        flex: 1, 
+        backgroundColor: colors.background 
+    },
+    safeArea: { 
+        flex: 1, 
+        backgroundColor: colors.background 
+    },
     header: {
-        paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 20,
+        paddingHorizontal: scale(20),
+        paddingTop: verticalScale(10),
+        paddingBottom: verticalScale(20),
         borderBottomWidth: 1,
         borderBottomColor: colors.border
     },
-    subtitle: { fontSize: 16, color: colors.grayMedium, },
+    subtitle: { 
+        fontSize: moderateScale(16), 
+        color: colors.grayMedium,
+        lineHeight: moderateScale(22)
+    },
     listContainer: { flex: 1 },
-    scrollContent: { paddingVertical: 20, },
-    centeredMessage: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30, backgroundColor: colors.background },
+    scrollContent: { paddingBottom: verticalScale(20) },
+    centeredMessage: { 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        paddingHorizontal: scale(20),
+        backgroundColor: colors.background 
+    },
     infoTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text, textAlign: 'center', marginTop: 16 },
     infoSubtitle: { fontSize: 16, color: colors.grayMedium, textAlign: 'center', marginTop: 8, marginBottom: 25, lineHeight: 22 },
     retryButton: { backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 35, borderRadius: 30, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 },
     retryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
-    dateGroup: { marginBottom: 16 },
+    dateGroup: { marginBottom: verticalScale(25) },
     dateHeaderText: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontWeight: 'bold',
         color: colors.grayMedium,
         textTransform: 'uppercase',
-        marginBottom: 15,
-        paddingHorizontal: 20,
+        marginBottom: verticalScale(15),
+        paddingHorizontal: scale(20),
         opacity: 0.8
     },
     card: {
         backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        marginHorizontal: 20,
-        marginBottom: 20,
+        borderRadius: moderateScale(16),
+        marginHorizontal: scale(20),
+        marginBottom: verticalScale(20),
         borderWidth: 1,
         borderColor: colors.border,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
-        shadowRadius: 12,
+        shadowRadius: moderateScale(12),
         elevation: 5
     },
     cardHeader: {

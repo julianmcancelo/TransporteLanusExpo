@@ -16,22 +16,20 @@ interface ContribuyenteSession {
     dni: string;
     nombre: string;
     token: string;
-    avatarUrl?: string;
 }
 
-export interface InternalUserSession {
+interface InternalUserSession {
     rol: 'admin' | 'inspector';
     email: string;
     nombre: string;
     legajo: string | null;
     token: string;
-    avatarUrl?: string;
 }
 
-export type UserSession = ContribuyenteSession | InternalUserSession | null;
+export type User = ContribuyenteSession | InternalUserSession | null;
 
 interface AuthContextType {
-    userSession: UserSession;
+    session: User;
     isLoading: boolean;
     isSessionLoading: boolean;
     error: string;
@@ -39,19 +37,10 @@ interface AuthContextType {
     signInWithManual: (licencia: string, dni: string) => Promise<void>;
     signInWithInternal: (identifier: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
-    // setPendingCount removed - not used in the application
+    setPendingCount: (count: number) => void;
 }
 
-export const AuthContext = createContext<AuthContextType>({
-    userSession: null,
-    isLoading: false,
-    isSessionLoading: true,
-    error: '',
-    signInWithQR: async () => {},
-    signInWithManual: async () => {},
-    signInWithInternal: async () => {},
-    signOut: async () => {},
-});
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
@@ -71,12 +60,11 @@ const fetchWithTimeout = (url: string, options: RequestInit, timeout = 15000): P
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [userSession, setUserSession] = useState<UserSession>(null);
+    const [session, setSession] = useState<User>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [isSessionLoading, setIsSessionLoading] = useState(true);
-    // We'll implement this in the future for notification badges
-    // const [pendingCount, setPendingCount] = useState(0);
+    const [, setPendingCount] = useState(0);
 
     const router = useRouter();
     const segments = useSegments();
@@ -84,16 +72,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const checkStoredSession = async () => {
             try {
-                const storedSession = await AsyncStorage.getItem('userSession');
+                const storedSession = await AsyncStorage.getItem('session');
                 if (storedSession) {
-                    const sessionData = JSON.parse(storedSession);
-                    
-                    // Ensure the session has an avatarUrl
-                    if (!sessionData.avatarUrl && sessionData.rol) {
-                        sessionData.avatarUrl = getDefaultAvatarUrl(sessionData.rol);
-                    }
-                    
-                    setUserSession(sessionData);
+                    setSession(JSON.parse(storedSession));
                 }
             } catch (e) {
                 console.error("Fallo al cargar la sesión.", e);
@@ -108,8 +89,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (isSessionLoading) return;
         const inAuthGroup = (segments as string[]).includes('login');
 
-        if (userSession && inAuthGroup) {
-            switch (userSession.rol) {
+        if (session && inAuthGroup) {
+            switch (session.rol) {
                 case 'contribuyente':
                     router.replace('/(contribuyente)/home');
                     break;
@@ -120,41 +101,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     router.replace('/(inspector)/inspecciones');
                     break;
             }
-        } else if (!userSession && !inAuthGroup) {
+        } else if (!session && !inAuthGroup) {
             router.replace('/login');
         }
-    }, [userSession, isSessionLoading, segments, router]);
+    }, [session, isSessionLoading, segments, router]);
 
     const handleLoginSuccess = async (data: ContribuyenteSession | InternalUserSession) => {
         try {
-            // Add default avatar URL based on role if not provided
-            const enhancedData = {
-                ...data,
-                avatarUrl: data.avatarUrl || getDefaultAvatarUrl(data.rol)
-            };
-            
-            await AsyncStorage.setItem('userSession', JSON.stringify(enhancedData));
-            setUserSession(enhancedData);
+            await AsyncStorage.setItem('session', JSON.stringify(data));
+            setSession(data);
             setError('');
         } catch (e) {
             console.error("Fallo al guardar la sesión.", e);
-            handleLoginError("No se pudo guardar la sesión de usuario.");
+            setError("Error al guardar la sesión.");
         } finally {
             setIsLoading(false);
-        }
-    };
-    
-    const getDefaultAvatarUrl = (role: string) => {
-        // Return a default avatar URL based on user role
-        switch(role) {
-            case 'admin':
-                return 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff';
-            case 'inspector':
-                return 'https://ui-avatars.com/api/?name=Inspector&background=22C55E&color=fff';
-            case 'contribuyente':
-                return 'https://ui-avatars.com/api/?name=Usuario&background=6366F1&color=fff';
-            default:
-                return 'https://ui-avatars.com/api/?name=User&background=64748B&color=fff';
         }
     };
 
@@ -164,14 +125,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const signOut = async () => {
-        try {
-            await AsyncStorage.removeItem('userSession');
-            setUserSession(null);
-            setError('');
-        } catch (e) {
-            console.error("Fallo al limpiar la sesión.", e);
-            setError("Error al cerrar la sesión.");
-        }
+        setSession(null);
+        await AsyncStorage.removeItem('session');
+        router.replace('/login');
     };
 
     // ================== INICIO DE ADICIÓN PARA QR ==================
@@ -261,7 +217,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const value: AuthContextType = {
-        userSession,
+        session,
         isLoading,
         isSessionLoading,
         error,
@@ -269,8 +225,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signInWithManual,
         signInWithInternal,
         signOut,
-        // setPendingCount removed - not implemented/used
+        setPendingCount,
     };
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
 };

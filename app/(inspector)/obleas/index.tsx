@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Animated, FlatList, Linking, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { useThemeColors } from '@/hooks/useThemeColors';
+import { useTheme } from '../../../src/hooks/useTheme';
 
 // --- Iconos ---
 const ArrowLeftIcon = ({ c, s = 28 }: { c: string, s?: number }) => <Svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M19 12H5M12 19l-7-7 7-7" /></Svg>;
@@ -170,7 +170,8 @@ const SkeletonGridItem = ({ index, themeColors }: { index: number, themeColors: 
 // --- Pantalla Principal ---
 export default function ListaObleasScreen() {
     const router = useRouter();
-    const themeColors = useThemeColors();
+    const theme = useTheme();
+    const themeColors = theme.colors;
     const styles = getStyles(themeColors);
     const netInfo = useNetInfo();
     const [pendientes, setPendientes] = useState<ObleaPendiente[]>([]);

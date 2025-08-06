@@ -59,6 +59,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
+    "react-native-unistyles": "^2.1.0",
     "rn-maps-clustering": "^0.1.2"
   },
   "devDependencies": {

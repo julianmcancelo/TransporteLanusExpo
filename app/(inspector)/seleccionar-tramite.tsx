@@ -4,7 +4,7 @@ import React from 'react';
 import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { useThemeColors } from '@/hooks/useThemeColors';
+import { useTheme, AppTheme } from '../../src/contexts/ThemeContext';
 
 // --- Iconos SVG ---
 type IconProps = { color: string; size?: number };
@@ -29,36 +29,36 @@ const TramiteCard = ({ icon, title, subtitle, onPress, styles }: { icon: React.R
 };
 
 // --- Pantalla de Selección de Trámite ---
-export default function SeleccionarTramiteScreen() {
+const TramiteScreenContent = ({ theme, isDarkTheme }: { theme: AppTheme, isDarkTheme: boolean }) => {
     const router = useRouter();
-    const themeColors = useThemeColors();
-    const styles = getStyles(themeColors);
+    const { colors } = theme;
+    const styles = getStyles(colors);
 
     const tramites = [
         {
             title: 'Nueva Inspección',
             subtitle: 'Realizar una inspección de rutina a un vehículo.',
-            icon: <FilePlusIcon color={themeColors.primary} />,
-            onPress: () => router.push('./nueva-inspeccion' as any),
+            icon: <FilePlusIcon color={colors.primary} />,
+            onPress: () => router.push('/(inspector)/inspection-form' as any),
         },
         {
             title: 'Colocar Oblea',
             subtitle: 'Registrar la colocación de una oblea y firmar.',
-            icon: <TagIcon color={themeColors.primary} />,
-            onPress: () => router.push('./obleas' as any),
+            icon: <TagIcon color={colors.primary} />,
+            onPress: () => router.push('/(inspector)/obleas' as any),
         },
         {
             title: 'Consultar Historial',
             subtitle: 'Buscar habilitaciones o inspecciones pasadas.',
-            icon: <ClockIcon color={themeColors.primary} />,
-            onPress: () => router.push('./historial' as any),
+            icon: <ClockIcon color={colors.primary} />,
+            onPress: () => router.push('/(inspector)/historial' as any),
         },
     ];
 
     return (
         <SafeAreaView style={styles.mainContainer}>
-            <StatusBar barStyle={themeColors.colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-            <LinearGradient colors={[themeColors.primary, themeColors.primaryDark]} style={styles.header}>
+            <StatusBar barStyle={isDarkTheme ? 'light-content' : 'dark-content'} />
+            <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.header}>
                 <Text style={styles.headerTitle}>Seleccionar Trámite</Text>
                 <Text style={styles.headerSubtitle}>Elige una opción para continuar</Text>
             </LinearGradient>
@@ -78,8 +78,22 @@ export default function SeleccionarTramiteScreen() {
     );
 }
 
+export default function SeleccionarTramiteScreen() {
+    const { theme, isDarkTheme } = useTheme();
+
+    if (!theme?.colors) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text>Cargando tema...</Text>
+            </View>
+        );
+    }
+
+    return <TramiteScreenContent theme={theme} isDarkTheme={isDarkTheme} />;
+}
+
 // --- Estilos ---
-const getStyles = (colors: any) => StyleSheet.create({
+const getStyles = (colors: AppTheme['colors']) => StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: colors.background },
     header: {
         paddingHorizontal: 24,

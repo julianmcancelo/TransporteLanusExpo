@@ -107,7 +107,7 @@ const AppointmentCard = ({ appointment, onConfirm, styles }: AppointmentCardProp
 // --- Pantalla Principal de Turnos ---
 export default function AppointmentsScreen() {
     const router = useRouter();
-    const { userSession, isSessionLoading } = useAuth();
+    const { session: userSession, isSessionLoading } = useAuth();
     const styles = getStyles();
 
     const [appointments, setAppointments] = useState<Appointment[]>([]);

@@ -205,7 +205,7 @@ const ActionCard = ({ title, subtitle, icon, onPress, styles }: { title: string,
 export default function ContribuyenteHomeScreen() {
     const styles = getStyles();
     
-    const { userSession, signOut } = useAuth();
+    const { session: userSession, signOut } = useAuth();
     const router = useRouter();
     const [licenses, setLicenses] = useState<Habilitacion[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);

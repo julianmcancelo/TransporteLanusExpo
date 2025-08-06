@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FAB } from 'react-native-paper';
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Stack, router } from 'expo-router';
@@ -239,6 +240,12 @@ export default function AdminDashboard() {
                 showsVerticalScrollIndicator={false}
                 ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
             />
+            <FAB
+                icon="cog-outline"
+                style={styles.fab}
+                onPress={() => router.push('/(admin)/ajustes')}
+                color={theme.card}
+            />
         </View>
     );
 }
@@ -379,4 +386,16 @@ const styles = StyleSheet.create({
 
     emptyText: { color: theme.textPrimary, fontSize: 18, fontWeight: '600', marginTop: 16 },
     emptySubtitle: { color: theme.textSecondary, fontSize: 14, marginTop: 4, textAlign: 'center' },
+    fab: {
+        position: 'absolute',
+        margin: 24,
+        right: 0,
+        bottom: 0,
+        backgroundColor: theme.primary,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
+    },
 });
