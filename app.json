@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "TransporteLanusExpo",
-    "slug": "TransporteLanusExpo",
+    "name": "Transporte Lanús",
+    "slug": "transporte-lanus",
     "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "transportelanusexpo",
+    "scheme": "transportelanus",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -21,7 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.jotacancelo.TransporteLanusExpo"
+      "package": "com.jotacancelo.transportelanus"
     },
     "web": {
       "bundler": "metro",

@@ -18,6 +18,7 @@ import { Circle, Path, Svg } from 'react-native-svg';
 import { API_GUARDAR_URL } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
+import AppHeader from '@/components/AppHeader';
 import type { Vehiculo } from '../../src/types/habilitacion';
 import { createInitialItems, groupItemsByCategory } from './InspectionConfig';
 
@@ -52,7 +53,7 @@ const toLocationData = (loc: Location.LocationObject | null): LocationData | nul
 export default function InspectionFormScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const { session, setPendingCount } = useAuth();
+    const { session, setPendingCount, signOut } = useAuth();
     const netInfo = useNetInfo();
     const { colors, colorScheme } = useTheme();
 
@@ -670,14 +671,15 @@ export default function InspectionFormScreen() {
                 translucent={false}
             />
             <SafeAreaView style={styles.safeArea}>
-            <Stack.Screen 
-                options={{
-                    title: `Inspección para Licencia ${tramite?.habilitacion?.nro_licencia ?? ''}`,
-                    headerStyle: { backgroundColor: colors.background },
-                    headerTintColor: colors.text,
-                    headerTitleStyle: { fontWeight: 'bold' }
-                }}
-            />
+                <AppHeader user={session} onLogout={signOut} />
+                <Stack.Screen 
+                    options={{
+                        title: `Inspección para Licencia ${tramite?.habilitacion?.nro_licencia ?? ''}`,
+                        headerStyle: { backgroundColor: colors.background },
+                        headerTintColor: colors.text,
+                        headerTitleStyle: { fontWeight: 'bold' }
+                    }}
+                />
             <View style={styles.container}>
                 <Text style={styles.mainTitle}>Formulario de Inspección</Text>
                 <Text style={styles.subtitle}>Licencia: {tramite.habilitacion?.nro_licencia || 'N/A'}</Text>

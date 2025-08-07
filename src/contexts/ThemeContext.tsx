@@ -11,7 +11,7 @@ import {
   DefaultTheme as NavigationDefaultTheme,
   Theme as NavigationTheme,
 } from '@react-navigation/native';
-import { MD3Theme, ThemeProp } from 'react-native-paper/lib/typescript/types';
+import { MD3Theme } from 'react-native-paper/lib/typescript/types';
 
 // --- Combinar temas de Paper y Navigation ---
 const { LightTheme, DarkTheme } = adaptNavigationTheme({
@@ -70,6 +70,25 @@ const CombinedDefaultTheme = {
     textSecondary: customColors.textSecondary,
     cardBackground: customColors.cardBackgroundLight,
   },
+  fonts: {
+    ...PaperLightTheme.fonts,
+    // Asegurar que todas las fuentes tengan lineHeight definido
+    displayLarge: { ...PaperLightTheme.fonts.displayLarge, lineHeight: PaperLightTheme.fonts.displayLarge.lineHeight || 64 },
+    displayMedium: { ...PaperLightTheme.fonts.displayMedium, lineHeight: PaperLightTheme.fonts.displayMedium.lineHeight || 52 },
+    displaySmall: { ...PaperLightTheme.fonts.displaySmall, lineHeight: PaperLightTheme.fonts.displaySmall.lineHeight || 44 },
+    headlineLarge: { ...PaperLightTheme.fonts.headlineLarge, lineHeight: PaperLightTheme.fonts.headlineLarge.lineHeight || 40 },
+    headlineMedium: { ...PaperLightTheme.fonts.headlineMedium, lineHeight: PaperLightTheme.fonts.headlineMedium.lineHeight || 36 },
+    headlineSmall: { ...PaperLightTheme.fonts.headlineSmall, lineHeight: PaperLightTheme.fonts.headlineSmall.lineHeight || 32 },
+    titleLarge: { ...PaperLightTheme.fonts.titleLarge, lineHeight: PaperLightTheme.fonts.titleLarge.lineHeight || 28 },
+    titleMedium: { ...PaperLightTheme.fonts.titleMedium, lineHeight: PaperLightTheme.fonts.titleMedium.lineHeight || 24 },
+    titleSmall: { ...PaperLightTheme.fonts.titleSmall, lineHeight: PaperLightTheme.fonts.titleSmall.lineHeight || 20 },
+    labelLarge: { ...PaperLightTheme.fonts.labelLarge, lineHeight: PaperLightTheme.fonts.labelLarge.lineHeight || 20 },
+    labelMedium: { ...PaperLightTheme.fonts.labelMedium, lineHeight: PaperLightTheme.fonts.labelMedium.lineHeight || 16 },
+    labelSmall: { ...PaperLightTheme.fonts.labelSmall, lineHeight: PaperLightTheme.fonts.labelSmall.lineHeight || 16 },
+    bodyLarge: { ...PaperLightTheme.fonts.bodyLarge, lineHeight: PaperLightTheme.fonts.bodyLarge.lineHeight || 24 },
+    bodyMedium: { ...PaperLightTheme.fonts.bodyMedium, lineHeight: PaperLightTheme.fonts.bodyMedium.lineHeight || 20 },
+    bodySmall: { ...PaperLightTheme.fonts.bodySmall, lineHeight: PaperLightTheme.fonts.bodySmall.lineHeight || 16 },
+  },
 } as AppTheme;
 
 const CombinedDarkTheme = {
@@ -91,6 +110,25 @@ const CombinedDarkTheme = {
     textLight: customColors.textLight,
     textSecondary: '#94A3B8', // Un gris más claro para el tema oscuro
     cardBackground: customColors.cardBackgroundDark,
+  },
+  fonts: {
+    ...PaperDarkTheme.fonts,
+    // Asegurar que todas las fuentes tengan lineHeight definido
+    displayLarge: { ...PaperDarkTheme.fonts.displayLarge, lineHeight: PaperDarkTheme.fonts.displayLarge.lineHeight || 64 },
+    displayMedium: { ...PaperDarkTheme.fonts.displayMedium, lineHeight: PaperDarkTheme.fonts.displayMedium.lineHeight || 52 },
+    displaySmall: { ...PaperDarkTheme.fonts.displaySmall, lineHeight: PaperDarkTheme.fonts.displaySmall.lineHeight || 44 },
+    headlineLarge: { ...PaperDarkTheme.fonts.headlineLarge, lineHeight: PaperDarkTheme.fonts.headlineLarge.lineHeight || 40 },
+    headlineMedium: { ...PaperDarkTheme.fonts.headlineMedium, lineHeight: PaperDarkTheme.fonts.headlineMedium.lineHeight || 36 },
+    headlineSmall: { ...PaperDarkTheme.fonts.headlineSmall, lineHeight: PaperDarkTheme.fonts.headlineSmall.lineHeight || 32 },
+    titleLarge: { ...PaperDarkTheme.fonts.titleLarge, lineHeight: PaperDarkTheme.fonts.titleLarge.lineHeight || 28 },
+    titleMedium: { ...PaperDarkTheme.fonts.titleMedium, lineHeight: PaperDarkTheme.fonts.titleMedium.lineHeight || 24 },
+    titleSmall: { ...PaperDarkTheme.fonts.titleSmall, lineHeight: PaperDarkTheme.fonts.titleSmall.lineHeight || 20 },
+    labelLarge: { ...PaperDarkTheme.fonts.labelLarge, lineHeight: PaperDarkTheme.fonts.labelLarge.lineHeight || 20 },
+    labelMedium: { ...PaperDarkTheme.fonts.labelMedium, lineHeight: PaperDarkTheme.fonts.labelMedium.lineHeight || 16 },
+    labelSmall: { ...PaperDarkTheme.fonts.labelSmall, lineHeight: PaperDarkTheme.fonts.labelSmall.lineHeight || 16 },
+    bodyLarge: { ...PaperDarkTheme.fonts.bodyLarge, lineHeight: PaperDarkTheme.fonts.bodyLarge.lineHeight || 24 },
+    bodyMedium: { ...PaperDarkTheme.fonts.bodyMedium, lineHeight: PaperDarkTheme.fonts.bodyMedium.lineHeight || 20 },
+    bodySmall: { ...PaperDarkTheme.fonts.bodySmall, lineHeight: PaperDarkTheme.fonts.bodySmall.lineHeight || 16 },
   },
 } as AppTheme;
 

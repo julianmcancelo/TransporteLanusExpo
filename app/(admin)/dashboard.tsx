@@ -9,6 +9,8 @@ import {
     LayoutAnimation,
     Platform,
     Pressable,
+    SafeAreaView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -18,26 +20,14 @@ import {
 import Reanimated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
 // --- Componentes y Servicios ---
-import { DynamicHeader } from '../../src/components/DynamicHeader'; // Asumimos que este componente ya existe
+import { DynamicHeader } from '../../src/components/DynamicHeader';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useTheme } from '../../src/hooks/useTheme';
+import AppHeader from '@/components/AppHeader';
 import * as api from '../../src/services/api';
 import { Habilitacion } from '../../src/types/habilitacion';
 
-// --- Paleta de Colores para el Nuevo Diseño ---
-const theme = {
-    background: '#F8FAFC', // Un fondo casi blanco para que resalten las tarjetas
-    card: '#FFFFFF',
-    textPrimary: '#0F172A', // Un gris oscuro, casi negro
-    textSecondary: '#64748B', // Gris medio para subtítulos
-    primary: '#0EA5E9', // Celeste vibrante (sky-500)
-    primaryDark: '#0284C7', // Celeste más oscuro (sky-600)
-    accent: '#E0F2FE', // Un celeste muy claro para fondos de íconos (sky-100)
-    border: '#E2E8F0',
-    success: '#10B981',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    skeleton: '#F1F5F9',
-};
+
 
 // Activar LayoutAnimation para Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -45,216 +35,25 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 // --- Helpers & Funciones de Estilo ---
-const getStatusStyle = (estado: string) => {
+const getStatusStyle = (estado: string, colors: any) => {
     switch (estado) {
         case 'HABILITADO':
-            return { icon: 'check-circle', color: theme.success, backgroundColor: '#ECFDF5' };
+            return { icon: 'check-circle', color: colors.success, backgroundColor: '#ECFDF5' };
         case 'EN TRAMITE':
-            return { icon: 'clock-fast', color: theme.warning, backgroundColor: '#FFFBEB' };
+            return { icon: 'clock-fast', color: colors.warning, backgroundColor: '#FFFBEB' };
         default:
-            return { icon: 'alert-circle', color: theme.error, backgroundColor: '#FEF2F2' };
+            return { icon: 'alert-circle', color: colors.error, backgroundColor: '#FEF2F2' };
     }
 };
 
-// --- Componentes de UI Rediseñados ---
 
-const StatsCard = ({ icon, label, count, color }: {
-    icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-    label: string;
-    count: number;
-    color: string;
-}) => (
-    <View style={styles.statsCard}>
-        <View style={[styles.statsIconContainer, { backgroundColor: color }]}>
-            <MaterialCommunityIcons name={icon} size={24} color={'#FFFFFF'} />
-        </View>
-        <Text style={styles.statsCount}>{count}</Text>
-        <Text style={styles.statsLabel}>{label}</Text>
-    </View>
-);
-
-const HabilitacionesSummary = ({ data }: { data: Habilitacion[] | undefined }) => {
-    const summary = useMemo(() => {
-        const initialValue = { habilitado: 0, tramite: 0, vencido: 0 };
-        return (data || []).reduce((acc, item) => {
-            if (item.estado === 'HABILITADO') acc.habilitado++;
-            else if (item.estado === 'EN TRAMITE') acc.tramite++;
-            else acc.vencido++;
-            return acc;
-        }, initialValue);
-    }, [data]);
-
-    return (
-        <View style={styles.summaryContainer}>
-            <StatsCard icon="check-circle-outline" label="Habilitados" count={summary.habilitado} color={theme.success} />
-            <StatsCard icon="clock-outline" label="En Trámite" count={summary.tramite} color={theme.warning} />
-            <StatsCard icon="close-circle-outline" label="Vencidos" count={summary.vencido} color={theme.error} />
-        </View>
-    );
-};
-
-const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
-    const status = getStatusStyle(item.estado);
-    const typeIcon = item.tipo_transporte === 'Remis' ? 'taxi' : 'bus-school';
-
-    const handlePress = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push({
-            pathname: `/(admin)/${item.habilitacion_id}` as any,
-            params: { item: JSON.stringify(item) }
-        });
-    };
-
-    // CORRECCIÓN: Se elimina el Reanimated.View con sharedTransitionTag que causaba el freeze.
-    return (
-        <Pressable onPress={handlePress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-            <View style={[styles.cardBorder, { backgroundColor: status.color }]} />
-            <View style={styles.cardContent}>
-                <View style={styles.cardIconType}>
-                    <MaterialCommunityIcons name={typeIcon} size={22} color={theme.primary} />
-                </View>
-                <View style={styles.cardTextContainer}>
-                    <Text style={styles.cardTitle}>{item.nro_licencia}</Text>
-                    <View style={styles.cardSubtitleContainer}>
-                        <MaterialCommunityIcons name="account-circle-outline" size={16} color={theme.textSecondary} />
-                        <Text style={styles.cardSubtitle} numberOfLines={1}>{item.titular_principal || `Exp: ${item.expte}`}</Text>
-                    </View>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: status.backgroundColor }]}>
-                    <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-                    <Text style={[styles.statusText, { color: status.color }]}>{item.estado}</Text>
-                </View>
-            </View>
-        </Pressable>
-    );
-};
-
-const CustomSegmentedButtons = ({ value, onValueChange }: { value: string; onValueChange: (val: 'Escolar' | 'Remis') => void }) => {
-    const buttons = [
-        { value: 'Escolar', label: 'Escolar', icon: 'bus-school' },
-        { value: 'Remis', label: 'Remis', icon: 'taxi' },
-    ];
-    return (
-        <View style={styles.segmentedContainer}>
-            {buttons.map(button => (
-                <TouchableOpacity key={button.value} style={[styles.segmentedButton, value === button.value && styles.segmentedButtonActive]} onPress={() => onValueChange(button.value as 'Escolar' | 'Remis')} activeOpacity={0.8}>
-                    <MaterialCommunityIcons name={button.icon as any} size={20} color={value === button.value ? theme.primaryDark : theme.textSecondary}/>
-                    <Text style={[styles.segmentedButtonText, value === button.value && styles.segmentedButtonTextActive]}>{button.label}</Text>
-                </TouchableOpacity>
-            ))}
-        </View>
-    );
-};
-
-const SkeletonRow = () => {
-    return (
-        <View style={[styles.card, { backgroundColor: '#FFFFFF' }]}>
-             <View style={[styles.cardBorder, { backgroundColor: theme.skeleton }]} />
-            <View style={styles.cardContent}>
-                <View style={styles.cardTextContainer}>
-                    <View style={[styles.skeletonLine, { width: '50%', height: 20, marginBottom: 8 }]} />
-                    <View style={[styles.skeletonLine, { width: '80%', height: 16 }]} />
-                </View>
-                <View style={[styles.skeletonLine, { width: 90, height: 28, borderRadius: 14 }]} />
-            </View>
-        </View>
-    );
-};
-
-const SkeletonLoader = () => (
-    <View style={{ gap: 16 }}>
-        <SkeletonRow />
-        <SkeletonRow />
-        <SkeletonRow />
-    </View>
-);
-
-const EmptyListComponent = () => {
-    return (
-        <View style={styles.centerContainer}>
-            <MaterialCommunityIcons name="folder-search-outline" size={64} color="#CBD5E1" />
-            <Text style={styles.emptyText}>No se encontraron habilitaciones</Text>
-            <Text style={styles.emptySubtitle}>Intenta ajustar tu búsqueda o los filtros.</Text>
-        </View>
-    );
-};
 
 // --- Componente Principal ---
-export default function AdminDashboard() {
-    const { userSession, signOut } = useAuth();
-    const [tipoTransporte, setTipoTransporte] = useState<'Escolar' | 'Remis'>('Escolar');
-    const [searchQuery, setSearchQuery] = useState('');
-
-    const scrollY = useSharedValue(0);
-
-    const { data: habilitaciones, isLoading, error, isFetching } = useQuery({
-        queryKey: ['habilitaciones', tipoTransporte, searchQuery],
-        queryFn: () => api.getHabilitaciones({ tipo: tipoTransporte, buscar: searchQuery }),
-    });
-
-    const scrollHandler = useAnimatedScrollHandler((event) => {
-        scrollY.value = event.contentOffset.y;
-    });
-
-    const onSegmentChange = (value: 'Escolar' | 'Remis') => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        Haptics.selectionAsync();
-        setTipoTransporte(value);
-    };
-
-    if (error) {
-        return <View style={styles.centerContainer}><Text style={styles.errorText}>Error al cargar los datos.</Text></View>;
-    }
-
-    return (
-        <View style={styles.flexOne}>
-            <Stack.Screen options={{ headerShown: false }} />
-            
-            <DynamicHeader
-                scrollY={scrollY}
-                userSession={userSession}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onLogout={async () => {
-                    await signOut();
-                    router.replace('/login');
-                }}
-            />
-
-            <Reanimated.FlatList
-                data={habilitaciones}
-                keyExtractor={(item) => item.habilitacion_id.toString()}
-                renderItem={({ item }) => <HabilitacionRow item={item} />}
-                onScroll={scrollHandler}
-                scrollEventThrottle={16}
-                contentContainerStyle={{ paddingTop: 360, paddingBottom: 50 }}
-                ListHeaderComponent={
-                    <View style={styles.listHeaderContainer}>
-                        <HabilitacionesSummary data={habilitaciones} />
-                        <CustomSegmentedButtons value={tipoTransporte} onValueChange={onSegmentChange} />
-                        {isFetching && !isLoading && <ActivityIndicator style={{ marginVertical: 10 }} color={theme.primary} />}
-                        {isLoading && <SkeletonLoader />}
-                    </View>
-                }
-                ListEmptyComponent={!isLoading ? <EmptyListComponent /> : null}
-                showsVerticalScrollIndicator={false}
-                ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
-            />
-            <FAB
-                icon="cog-outline"
-                style={styles.fab}
-                onPress={() => router.push('/(admin)/ajustes')}
-                color={theme.card}
-            />
-        </View>
-    );
-}
-
-// --- Hoja de Estilos ---
-const styles = StyleSheet.create({
-    flexOne: { flex: 1, backgroundColor: theme.background },
-    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: theme.background },
-    errorText: { color: theme.error, fontSize: 16, fontWeight: 'bold' },
+// --- Función para generar estilos dinámicos ---
+const getStyles = (colors: any) => StyleSheet.create({
+    flexOne: { flex: 1, backgroundColor: colors.background },
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: colors.background },
+    errorText: { color: colors.error, fontSize: 16, fontWeight: 'bold' },
     
     listHeaderContainer: {
         paddingHorizontal: 20,
@@ -271,7 +70,7 @@ const styles = StyleSheet.create({
     statsCard: {
         flex: 1,
         alignItems: 'center',
-        backgroundColor: theme.card,
+        backgroundColor: colors.cardBackground,
         borderRadius: 20,
         padding: 16,
         shadowColor: "#94A3B8",
@@ -293,36 +92,94 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 4,
     },
-    statsCount: { fontSize: 28, fontWeight: 'bold', color: theme.textPrimary },
-    statsLabel: { fontSize: 13, color: theme.textSecondary, fontWeight: '600' },
+    statsCount: { fontSize: 28, fontWeight: 'bold', color: colors.text },
+    statsLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
 
     segmentedContainer: {
         flexDirection: 'row',
-        backgroundColor: '#E2E8F0',
-        borderRadius: 16,
-        padding: 6,
+        backgroundColor: colors.border,
+        borderRadius: 12,
+        padding: 4,
     },
     segmentedButton: {
         flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
         paddingVertical: 12,
-        borderRadius: 12,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        alignItems: 'center',
     },
     segmentedButtonActive: {
-        backgroundColor: theme.card,
-        shadowColor: '#000',
+        backgroundColor: colors.cardBackground,
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
+        elevation: 2,
+    },
+    segmentedText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
+    segmentedTextActive: { color: colors.primary },
+
+    habilitacionRow: {
+        backgroundColor: colors.cardBackground,
+        borderRadius: 16,
+        padding: 16,
+        marginHorizontal: 20,
+        shadowColor: "#94A3B8",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
         elevation: 3,
     },
-    segmentedButtonText: { fontSize: 15, fontWeight: 'bold', color: theme.textSecondary, marginLeft: 8 },
-    segmentedButtonTextActive: { color: theme.primaryDark },
-    
+    rowHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    licenciaNumber: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+    statusBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 80,
+    },
+    statusText: { fontSize: 12, fontWeight: 'bold' },
+    rowContent: { gap: 8 },
+    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    infoText: { fontSize: 14, color: colors.textSecondary, flex: 1 },
+
+    skeletonRow: {
+        backgroundColor: colors.cardBackground,
+        borderRadius: 16,
+        padding: 16,
+        marginHorizontal: 20,
+        marginBottom: 16,
+    },
+    skeleton: {
+        backgroundColor: colors.border,
+        borderRadius: 8,
+    },
+
+    emptyContainer: {
+        alignItems: 'center',
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+    },
+    emptyText: { fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginTop: 16 },
+
+    fab: {
+        position: 'absolute',
+        margin: 16,
+        right: 0,
+        bottom: 0,
+        backgroundColor: colors.primary,
+    },
+
+    // Estilos adicionales para componentes
     card: {
-        backgroundColor: theme.card,
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         shadowColor: '#94A3B8',
         shadowOffset: { width: 0, height: 2 },
@@ -354,48 +211,246 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: theme.accent,
+        backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
     cardTextContainer: { flex: 1, marginRight: 10 },
-    cardTitle: { fontSize: 18, fontWeight: 'bold', color: theme.textPrimary },
+    cardTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
     cardSubtitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 4,
     },
-    cardSubtitle: { fontSize: 14, color: theme.textSecondary, marginLeft: 6 },
-
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 999,
-    },
+    cardSubtitle: { fontSize: 14, color: colors.textSecondary, marginLeft: 6 },
     statusDot: {
         width: 8,
         height: 8,
         borderRadius: 4,
     },
-    statusText: { marginLeft: 6, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 },
-
-    skeletonLine: { backgroundColor: theme.skeleton, borderRadius: 4 },
-
-    emptyText: { color: theme.textPrimary, fontSize: 18, fontWeight: '600', marginTop: 16 },
-    emptySubtitle: { color: theme.textSecondary, fontSize: 14, marginTop: 4, textAlign: 'center' },
-    fab: {
-        position: 'absolute',
-        margin: 24,
-        right: 0,
-        bottom: 0,
-        backgroundColor: theme.primary,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
-    },
+    segmentedButtonText: { fontSize: 15, fontWeight: 'bold', color: colors.textSecondary, marginLeft: 8 },
+    segmentedButtonTextActive: { color: colors.primary },
 });
+
+export default function AdminDashboard() {
+    const { session: userSession, signOut } = useAuth();
+    const { colors, colorScheme } = useTheme();
+    const styles = getStyles(colors);
+    const [tipoTransporte, setTipoTransporte] = useState<'Escolar' | 'Remis'>('Escolar');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const scrollY = useSharedValue(0);
+
+    // --- Componentes internos con acceso a colors ---
+    const StatsCard = ({ icon, label, count, color }: {
+        icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+        label: string;
+        count: number;
+        color: string;
+    }) => (
+        <View style={styles.statsCard}>
+            <View style={[styles.statsIconContainer, { backgroundColor: color }]}>
+                <MaterialCommunityIcons name={icon} size={24} color={'#FFFFFF'} />
+            </View>
+            <Text style={styles.statsCount}>{count}</Text>
+            <Text style={styles.statsLabel}>{label}</Text>
+        </View>
+    );
+
+    const HabilitacionesSummary = ({ data }: { data: Habilitacion[] | undefined }) => {
+        const summary = useMemo(() => {
+            const initialValue = { habilitado: 0, tramite: 0, vencido: 0 };
+            return (data || []).reduce((acc, item) => {
+                if (item.estado === 'HABILITADO') acc.habilitado++;
+                else if (item.estado === 'EN TRAMITE') acc.tramite++;
+                else acc.vencido++;
+                return acc;
+            }, initialValue);
+        }, [data]);
+
+        return (
+            <View style={styles.summaryContainer}>
+                <StatsCard icon="check-circle-outline" label="Habilitados" count={summary.habilitado} color={colors.success} />
+                <StatsCard icon="clock-outline" label="En Trámite" count={summary.tramite} color={colors.warning} />
+                <StatsCard icon="close-circle-outline" label="Vencidos" count={summary.vencido} color={colors.error} />
+            </View>
+        );
+    };
+
+    const HabilitacionRow = ({ item }: { item: Habilitacion }) => {
+        const status = getStatusStyle(item.estado, colors);
+        const typeIcon = item.tipo_transporte === 'Remis' ? 'taxi' : 'bus-school';
+
+        const handlePress = () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push({
+                pathname: `/(admin)/${item.habilitacion_id}` as any,
+                params: { item: JSON.stringify(item) }
+            });
+        };
+
+        return (
+            <Pressable onPress={handlePress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+                <View style={[styles.cardBorder, { backgroundColor: status.color }]} />
+                <View style={styles.cardContent}>
+                    <View style={styles.cardIconType}>
+                        <MaterialCommunityIcons name={typeIcon} size={22} color={colors.primary} />
+                    </View>
+                    <View style={styles.cardTextContainer}>
+                        <Text style={styles.cardTitle}>{item.nro_licencia}</Text>
+                        <View style={styles.cardSubtitleContainer}>
+                            <MaterialCommunityIcons name="account-circle-outline" size={16} color={colors.textSecondary} />
+                            <Text style={styles.cardSubtitle} numberOfLines={1}>{item.titular_principal || `Exp: ${item.expte}`}</Text>
+                        </View>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: status.backgroundColor }]}>
+                        <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+                        <Text style={[styles.statusText, { color: status.color }]}>{item.estado}</Text>
+                    </View>
+                </View>
+            </Pressable>
+        );
+    };
+
+    const CustomSegmentedButtons = ({ value, onValueChange }: { value: string; onValueChange: (val: 'Escolar' | 'Remis') => void }) => {
+        const buttons = [
+            { value: 'Escolar', label: 'Escolar', icon: 'bus-school' },
+            { value: 'Remis', label: 'Remis', icon: 'taxi' },
+        ];
+        return (
+            <View style={styles.segmentedContainer}>
+                {buttons.map(button => (
+                    <TouchableOpacity key={button.value} style={[styles.segmentedButton, value === button.value && styles.segmentedButtonActive]} onPress={() => onValueChange(button.value as 'Escolar' | 'Remis')} activeOpacity={0.8}>
+                        <MaterialCommunityIcons name={button.icon as any} size={20} color={value === button.value ? colors.primary : colors.textSecondary}/>
+                        <Text style={[styles.segmentedButtonText, value === button.value && styles.segmentedButtonTextActive]}>{button.label}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        );
+    };
+
+    const SkeletonRow = () => {
+        return (
+            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+                 <View style={[styles.cardBorder, { backgroundColor: colors.border }]} />
+                <View style={styles.cardContent}>
+                    <View style={styles.cardTextContainer}>
+                        <View style={[styles.skeleton, { width: '50%', height: 20, marginBottom: 8 }]} />
+                        <View style={[styles.skeleton, { width: '80%', height: 16 }]} />
+                    </View>
+                    <View style={[styles.skeleton, { width: 90, height: 28, borderRadius: 14 }]} />
+                </View>
+            </View>
+        );
+    };
+
+    const SkeletonLoader = () => (
+        <View style={{ gap: 16 }}>
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+        </View>
+    );
+
+    const EmptyListComponent = () => {
+        return (
+            <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="folder-search-outline" size={64} color={colors.textSecondary} />
+                <Text style={styles.emptyText}>No se encontraron habilitaciones</Text>
+                <Text style={[styles.emptyText, { fontSize: 14, marginTop: 4 }]}>Intenta ajustar tu búsqueda o los filtros.</Text>
+            </View>
+        );
+    };
+
+    const { data: habilitaciones, isLoading, error, isFetching } = useQuery({
+        queryKey: ['habilitaciones', tipoTransporte, searchQuery],
+        queryFn: () => api.getHabilitaciones({ tipo: tipoTransporte, buscar: searchQuery }),
+    });
+
+    const scrollHandler = useAnimatedScrollHandler((event) => {
+        scrollY.value = event.contentOffset.y;
+    });
+
+    const onSegmentChange = (value: 'Escolar' | 'Remis') => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        Haptics.selectionAsync();
+        setTipoTransporte(value);
+    };
+
+    // Android-specific container style to ensure content is below status bar
+    const androidContainerStyle = {
+        flex: 1,
+        backgroundColor: colors.background,
+        ...(Platform.OS === 'android' && {
+            paddingTop: StatusBar.currentHeight || 0,
+        })
+    };
+
+    if (error) {
+        return (
+            <View style={androidContainerStyle}>
+                <StatusBar 
+                    barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
+                    backgroundColor={colors.background} 
+                    translucent={false}
+                />
+                <SafeAreaView style={styles.centerContainer}>
+                    <Text style={styles.errorText}>Error al cargar los datos.</Text>
+                </SafeAreaView>
+            </View>
+        );
+    }
+
+    return (
+        <View style={androidContainerStyle}>
+            <StatusBar 
+                barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
+                backgroundColor={colors.background} 
+                translucent={false}
+            />
+            <SafeAreaView style={styles.flexOne}>
+                <AppHeader user={userSession} onLogout={signOut} />
+                <Stack.Screen options={{ headerShown: false }} />
+            
+            <DynamicHeader
+                scrollY={scrollY}
+                userSession={userSession}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onLogout={async () => {
+                    await signOut();
+                    router.replace('/login');
+                }}
+            />
+
+            <Reanimated.FlatList
+                data={habilitaciones}
+                keyExtractor={(item) => item.habilitacion_id.toString()}
+                renderItem={({ item }) => <HabilitacionRow item={item} />}
+                onScroll={scrollHandler}
+                scrollEventThrottle={16}
+                contentContainerStyle={{ paddingTop: 360, paddingBottom: 50 }}
+                ListHeaderComponent={
+                    <View style={styles.listHeaderContainer}>
+                        <HabilitacionesSummary data={habilitaciones} />
+                        <CustomSegmentedButtons value={tipoTransporte} onValueChange={onSegmentChange} />
+                        {isFetching && !isLoading && <ActivityIndicator style={{ marginVertical: 10 }} color={colors.primary} />}
+                        {isLoading && <SkeletonLoader />}
+                    </View>
+                }
+                ListEmptyComponent={!isLoading ? <EmptyListComponent /> : null}
+                showsVerticalScrollIndicator={false}
+                ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+            />
+            <FAB
+                icon="cog-outline"
+                style={styles.fab}
+                onPress={() => router.push('/(admin)/ajustes')}
+            />
+            </SafeAreaView>
+        </View>
+    );
+}
+
+

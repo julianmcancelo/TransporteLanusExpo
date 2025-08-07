@@ -25,7 +25,9 @@ import {
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { API_TRAMITES_URL } from '@/constants/api';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/contexts/AuthContext';
+import AppHeader from '@/components/AppHeader';
 import type { Vehiculo } from '../../src/types/habilitacion';
 
 // --- Configuración de Animación para Android ---
@@ -92,7 +94,7 @@ const AnimatedView = ({ children, index = 0 }: { children: React.ReactNode, inde
     return <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>{children}</Animated.View>;
 };
 
-const InfoMessage = ({ title, subtitle, onRetry, isRetrying, themeColors, styles }: any) => {
+const InfoMessage = ({ title, subtitle, onRetry, isRetrying, colors, styles }: any) => {
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const handlePressIn = () => Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true }).start();
     const handlePressOut = () => Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }).start();
@@ -101,7 +103,7 @@ const InfoMessage = ({ title, subtitle, onRetry, isRetrying, themeColors, styles
         <View style={styles.centeredMessage}>
             <AnimatedView>
                 <View style={{alignItems: 'center'}}>
-                    <InfoIcon color={themeColors.primary} size={40}/>
+                    <InfoIcon color={colors.primary} size={40}/>
                     <Text style={styles.infoTitle}>{title}</Text>
                     <Text style={styles.infoSubtitle}>{subtitle}</Text>
                     {onRetry && (
@@ -137,22 +139,22 @@ const InfoRow = ({ label, value, icon, styles }: { label: string, value: string 
     );
 };
 
-const StatusBadge = ({ estado, themeColors, styles }: { estado: Habilitacion['estado'], themeColors: any, styles: any }) => {
+const StatusBadge = ({ estado, colors, styles }: { estado: Habilitacion['estado'], colors: any, styles: any }) => {
     // Handle various status values that might come from the database
     const statusInfo: Record<string, { color: string, label: string }> = {
-        'VIGENTE': { color: themeColors.success, label: 'Vigente' },
-        'VENCIDA': { color: themeColors.error, label: 'Vencida' },
-        'VENCIDO': { color: themeColors.error, label: 'Vencida' },
-        'EN_PROCESO': { color: themeColors.warning, label: 'En Proceso' },
-        'EN PROCESO': { color: themeColors.warning, label: 'En Proceso' },
-        'PENDIENTE': { color: themeColors.warning, label: 'Pendiente' },
-        'ACTIVA': { color: themeColors.success, label: 'Activa' },
-        'ACTIVO': { color: themeColors.success, label: 'Activo' },
-        'INACTIVA': { color: themeColors.error, label: 'Inactiva' },
-        'INACTIVO': { color: themeColors.error, label: 'Inactivo' },
+        'VIGENTE': { color: colors.success, label: 'Vigente' },
+        'VENCIDA': { color: colors.error, label: 'Vencida' },
+        'VENCIDO': { color: colors.error, label: 'Vencida' },
+        'EN_PROCESO': { color: colors.warning, label: 'En Proceso' },
+        'EN PROCESO': { color: colors.warning, label: 'En Proceso' },
+        'PENDIENTE': { color: colors.warning, label: 'Pendiente' },
+        'ACTIVA': { color: colors.success, label: 'Activa' },
+        'ACTIVO': { color: colors.success, label: 'Activo' },
+        'INACTIVA': { color: colors.error, label: 'Inactiva' },
+        'INACTIVO': { color: colors.error, label: 'Inactivo' },
         // Fallback for any other status
     };
-    const currentStatus = statusInfo[estado?.toUpperCase()] || { color: themeColors.primary, label: estado || 'Sin Estado' };
+    const currentStatus = statusInfo[estado?.toUpperCase()] || { color: colors.primary, label: estado || 'Sin Estado' };
     return (
         <View style={[styles.statusBadge, { backgroundColor: currentStatus.color }]}>
             <Text style={styles.statusBadgeText}>{currentStatus.label}</Text>
@@ -160,7 +162,7 @@ const StatusBadge = ({ estado, themeColors, styles }: { estado: Habilitacion['es
     );
 };
 
-const InspectionCard = ({ item, onPress, themeColors, styles }: { item: Tramite, onPress: (item: Tramite) => void, themeColors: any, styles: any }) => {
+const InspectionCard = ({ item, onPress, colors, styles }: { item: Tramite, onPress: (item: Tramite) => void, colors: any, styles: any }) => {
     const turnoInfo = item.turno
         ? `${new Date((item.turno.fecha ?? "") + 'T00:00:00').toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', year: 'numeric'})} a las ${item.turno.hora.substring(0, 5)} hs`
         : 'Sin turno asignado';
@@ -174,12 +176,12 @@ const InspectionCard = ({ item, onPress, themeColors, styles }: { item: Tramite,
             <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
                 <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>Licencia {item.habilitacion.nro_licencia}</Text>
-                    <StatusBadge estado={item.habilitacion.estado} themeColors={themeColors} styles={styles} />
+                    <StatusBadge estado={item.habilitacion.estado} colors={colors} styles={styles} />
                 </View>
                 <View style={styles.cardContent}>
-                    <InfoRow label="Titular" value={item.titular?.nombre} icon={<UserIcon color={themeColors.primary} />} styles={styles} />
-                    <InfoRow label="Vehículo" value={`${item.vehiculo?.marca || ''} ${item.vehiculo?.modelo || ''} (${item.vehiculo?.dominio || 'S/D'})`.trim()} icon={<CarIcon color={themeColors.primary} />} styles={styles} />
-                    <InfoRow label="Turno" value={turnoInfo} icon={<CalendarIcon color={themeColors.primary} />} styles={styles} />
+                    <InfoRow label="Titular" value={item.titular?.nombre} icon={<UserIcon color={colors.primary} />} styles={styles} />
+                    <InfoRow label="Vehículo" value={`${item.vehiculo?.marca || ''} ${item.vehiculo?.modelo || ''} (${item.vehiculo?.dominio || 'S/D'})`.trim()} icon={<CarIcon color={colors.primary} />} styles={styles} />
+                    <InfoRow label="Turno" value={turnoInfo} icon={<CalendarIcon color={colors.primary} />} styles={styles} />
                 </View>
             </Animated.View>
         </TouchableOpacity>
@@ -192,17 +194,9 @@ const InspectionCard = ({ item, onPress, themeColors, styles }: { item: Tramite,
 
 export default function SelectInspectionScreen() {
     const router = useRouter();
-    const colorScheme: 'light' | 'dark' = 'light'; // You can use useColorScheme() if needed
-    const themeColors = {
-        ...Colors[colorScheme],
-        primary: '#00AEEF',
-        primaryDark: '#008ACD',
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        grayMedium: '#6B7280'
-    };
-    const styles = getStyles(themeColors);
+    const { colors } = useTheme();
+    const { session: user, signOut } = useAuth();
+    const styles = getStyles(colors);
 
     const [tramites, setTramites] = useState<Tramite[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -290,15 +284,15 @@ export default function SelectInspectionScreen() {
     };
 
     const renderContent = () => {
-        if (isLoading) return <View style={styles.centeredMessage}><ActivityIndicator size="large" color={themeColors.primary} /></View>;
-        if (error) return <InfoMessage title="Error al Cargar" subtitle={error} onRetry={() => fetchTramites()} isRetrying={isLoading} themeColors={themeColors} styles={styles} />;
-        if (Object.keys(groupedData).length === 0) return <InfoMessage title="Todo al día" subtitle="No hay trámites pendientes de inspección." onRetry={() => fetchTramites(true)} isRetrying={isRefreshing} themeColors={themeColors} styles={styles} />;
+        if (isLoading) return <View style={styles.centeredMessage}><ActivityIndicator size="large" color={colors.primary} /></View>;
+        if (error) return <InfoMessage title="Error al Cargar" subtitle={error} onRetry={() => fetchTramites()} isRetrying={isLoading} colors={colors} styles={styles} />;
+        if (Object.keys(groupedData).length === 0) return <InfoMessage title="Todo al día" subtitle="No hay trámites pendientes de inspección." onRetry={() => fetchTramites(true)} isRetrying={isRefreshing} colors={colors} styles={styles} />;
 
         let cardIndex = 0;
         return (
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[themeColors.primary]} tintColor={themeColors.primary} />}
+                refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
             >
                 {Object.keys(groupedData).map((dateKey, groupIndex) => (
                     <AnimatedView key={dateKey} index={groupIndex}>
@@ -308,7 +302,7 @@ export default function SelectInspectionScreen() {
                                 cardIndex++;
                                 return (
                                     <AnimatedView key={item.habilitacion.id} index={cardIndex * 0.5}>
-                                        <InspectionCard item={item} onPress={handleSelectTramite} themeColors={themeColors} styles={styles} />
+                                        <InspectionCard item={item} onPress={handleSelectTramite} colors={colors} styles={styles} />
                                     </AnimatedView>
                                 );
                             })}
@@ -322,7 +316,7 @@ export default function SelectInspectionScreen() {
     // Android-specific container style to ensure content is below status bar
     const androidContainerStyle = {
         flex: 1,
-        backgroundColor: themeColors.background,
+        backgroundColor: colors.background,
         ...(Platform.OS === 'android' && {
             paddingTop: StatusBar.currentHeight || 0,
         })
@@ -332,29 +326,30 @@ export default function SelectInspectionScreen() {
         <View style={androidContainerStyle}>
             <StatusBar 
                 barStyle='dark-content'
-                backgroundColor={themeColors.background} 
+                backgroundColor={colors.background} 
                 translucent={false}
             />
             <SafeAreaView style={styles.safeArea}>
-            <Stack.Screen
-                options={{
-                    title: "Seleccionar Trámite",
-                    headerStyle: { backgroundColor: themeColors.background },
-                    headerTitleStyle: { color: themeColors.text, fontWeight: 'bold' },
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
-                            <ArrowLeftIcon color={themeColors.primary} />
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
+                <AppHeader user={user} onLogout={signOut} />
+                <Stack.Screen
+                    options={{
+                        title: "Seleccionar Trámite",
+                        headerStyle: { backgroundColor: colors.background },
+                        headerTitleStyle: { color: colors.text, fontWeight: 'bold' },
+                        headerShadowVisible: false,
+                        headerLeft: () => (
+                            <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
+                                <ArrowLeftIcon color={colors.primary} />
+                            </TouchableOpacity>
+                        ),
+                    }}
+                />
             <View style={styles.header}>
                 <Text style={styles.subtitle}>Elige una habilitación para comenzar la inspección.</Text>
                 {dataSource && (
                     <AnimatedView>
                         <View style={styles.dataSourceContainer}>
-                            {dataSource === 'cloud' ? <CloudIcon color={themeColors.success} /> : <DatabaseIcon color={themeColors.warning} />}
+                            {dataSource === 'cloud' ? <CloudIcon color={colors.success} /> : <DatabaseIcon color={colors.warning} />}
                             <Text style={styles.dataSourceText}>
                                 {dataSource === 'cloud' ? 'Datos desde la nube' : 'Mostrando datos locales'}
                             </Text>

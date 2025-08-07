@@ -17,10 +17,7 @@ const queryClient = new QueryClient();
 // Mantiene visible la pantalla de bienvenida nativa mientras cargamos los recursos
 SplashScreen.preventAutoHideAsync();
 
-// NOTA: Para eliminar completamente el logo de Expo, es necesario crear una build de desarrollo o producción
-// El logo de Expo solo aparece cuando se ejecuta la app dentro de Expo Go
-// Para crear una build de desarrollo: npx expo prebuild
-// Para crear una build de producción: eas build --platform android (o ios)
+
 
 // --- COMPONENTE DE SPLASH SCREEN CON ESTÉTICA MEJORADA ---
 function CustomSplashScreen() {

@@ -1,5 +1,5 @@
 import { useColorScheme } from 'react-native';
-import { ThemeColors } from '@/types/theme';
+import { ThemeColors, ThemeFonts } from '@/types/theme';
 import { getGlobalStyles } from '@/constants/globalStyles';
 
 const lightColors: ThemeColors = {
@@ -34,6 +34,34 @@ const darkColors: ThemeColors = {
     textLight: '#FFFFFF',
 };
 
+// Default font configuration to prevent lineHeight undefined errors
+const defaultFonts: ThemeFonts = {
+    regular: {
+        fontFamily: 'System',
+        fontWeight: '400' as const,
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    medium: {
+        fontFamily: 'System',
+        fontWeight: '500' as const,
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    light: {
+        fontFamily: 'System',
+        fontWeight: '300' as const,
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    thin: {
+        fontFamily: 'System',
+        fontWeight: '100' as const,
+        fontSize: 14,
+        lineHeight: 20,
+    },
+};
+
 export function useTheme() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = colorScheme === 'dark' ? darkColors : lightColors;
@@ -43,5 +71,6 @@ export function useTheme() {
         colors,
         styles,
         colorScheme,
+        fonts: defaultFonts,
     };
 }

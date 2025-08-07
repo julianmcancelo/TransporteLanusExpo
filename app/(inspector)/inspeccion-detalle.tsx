@@ -3,14 +3,15 @@
 // DESCRIPCIÓN: Muestra el detalle de la habilitación y el resultado de la inspección.
 // =========================================================================
 
-import { Colors } from '@/constants/Colors';
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { Vehiculo } from '../../src/types/habilitacion';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { API_CREDENTIAL_DETAILS_URL } from '../../src/constants/api';
+import AppHeader from '../../components/ui/AppHeader';
+import { useTheme } from '../../src/hooks/useTheme';
 
 // --- Tipos ---
 interface Habilitacion {
@@ -81,7 +82,8 @@ const FileTextIcon = ({ color }: IconProps) => <Svg width={24} height={24} viewB
 
 // --- Componentes Reutilizables ---
 const InfoRow = ({ label, value, icon }: { label: string, value?: string | null, icon: React.ReactNode }) => {
-    const styles = getStyles(Colors.light); // Estilos consistentes
+    const { colors } = useTheme();
+    const styles = getStyles(colors);
     if (!value) return null;
     return (
         <View style={styles.infoRow}>
@@ -95,7 +97,8 @@ const InfoRow = ({ label, value, icon }: { label: string, value?: string | null,
 };
 
 const DetailCard = ({ title, children, headerAccessory }: { title: string, children: React.ReactNode, headerAccessory?: React.ReactNode }) => {
-    const styles = getStyles(Colors.light);
+    const { colors } = useTheme();
+    const styles = getStyles(colors);
     return (
         <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -109,15 +112,15 @@ const DetailCard = ({ title, children, headerAccessory }: { title: string, child
     );
 };
 
-const HabilitacionStatusBadge = ({ estado, themeColors }: { estado: Habilitacion['estado'], themeColors: any }) => {
-    const styles = getStyles(themeColors);
+const HabilitacionStatusBadge = ({ estado, colors }: { estado: Habilitacion['estado'], colors: any }) => {
+    const styles = getStyles(colors);
     const statusInfo = useMemo(() => ({
-        'VIGENTE': { color: themeColors.success, label: 'Vigente' },
-        'VENCIDA': { color: themeColors.error, label: 'Vencida' },
-        'EN TRAMITE': { color: themeColors.warning, label: 'En Trámite' },
-        'INICIADO': { color: themeColors.primary, label: 'Iniciado' },
-    }), [themeColors]);
-    const currentStatus = statusInfo[estado as keyof typeof statusInfo] || { color: themeColors.grayMedium, label: estado };
+        'VIGENTE': { color: colors.success, label: 'Vigente' },
+        'VENCIDA': { color: colors.error, label: 'Vencida' },
+        'EN TRAMITE': { color: colors.warning, label: 'En Trámite' },
+        'INICIADO': { color: colors.primary, label: 'Iniciado' },
+    }), [colors]);
+    const currentStatus = statusInfo[estado as keyof typeof statusInfo] || { color: colors.grayMedium, label: estado };
     return (
         <View style={[styles.statusBadge, { backgroundColor: currentStatus.color }]}>
             <Text style={styles.statusBadgeText}>{currentStatus.label}</Text>
@@ -125,8 +128,8 @@ const HabilitacionStatusBadge = ({ estado, themeColors }: { estado: Habilitacion
     );
 };
 
-const InspectionStatusBadge = ({ inspection, themeColors }: { inspection: Inspection, themeColors: any }) => {
-    const styles = getStyles(themeColors);
+const InspectionStatusBadge = ({ inspection, colors }: { inspection: Inspection, colors: any }) => {
+    const styles = getStyles(colors);
     const isFinalizado = inspection.estado === 'finalizado';
     const isAprobado = inspection.resultado === 'aprobado';
 
@@ -154,11 +157,10 @@ const InspectionStatusBadge = ({ inspection, themeColors }: { inspection: Inspec
 export default function InspeccionDetalleScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const colorScheme = useColorScheme() ?? 'light';
-    const themeColors = useMemo(() => ({ ...Colors[colorScheme], primary: '#00AEEF', primaryDark: '#008ACD', success: '#28a745', error: '#dc3545', warning: '#ffc107' }), [colorScheme]);
-    const styles = getStyles(themeColors);
+    const { colors, colorScheme } = useTheme();
+    const styles = getStyles(colors);
 
-    const { session: user } = useAuth();
+    const { session: user, signOut } = useAuth();
     const [tramite, setTramite] = useState<Tramite | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -218,7 +220,7 @@ export default function InspeccionDetalleScreen() {
     // Android-specific container style to ensure content is below status bar
     const androidContainerStyle = {
         flex: 1,
-        backgroundColor: themeColors.background,
+        backgroundColor: colors.background,
         ...(Platform.OS === 'android' && {
             paddingTop: StatusBar.currentHeight || 0,
         })
@@ -229,13 +231,13 @@ export default function InspeccionDetalleScreen() {
             <View style={androidContainerStyle}>
                 <StatusBar 
                     barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
-                    backgroundColor={themeColors.background} 
+                    backgroundColor={colors.background} 
                     translucent={false}
                 />
                 <SafeAreaView style={styles.safeArea}>
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={themeColors.primary} />
-                        <Text style={[styles.loadingText, { color: themeColors.grayMedium }]}>Actualizando datos...</Text>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Actualizando datos...</Text>
                     </View>
                 </SafeAreaView>
             </View>
@@ -247,13 +249,13 @@ export default function InspeccionDetalleScreen() {
             <View style={androidContainerStyle}>
                 <StatusBar 
                     barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
-                    backgroundColor={themeColors.background} 
+                    backgroundColor={colors.background} 
                     translucent={false}
                 />
                 <SafeAreaView style={styles.safeArea}>
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={themeColors.primary} />
-                        <Text style={[styles.loadingText, { color: themeColors.grayMedium }]}>Cargando datos...</Text>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Cargando datos...</Text>
                     </View>
                 </SafeAreaView>
             </View>
@@ -267,52 +269,53 @@ export default function InspeccionDetalleScreen() {
         <View style={androidContainerStyle}>
             <StatusBar 
                 barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
-                backgroundColor={themeColors.background} 
+                backgroundColor={colors.background} 
                 translucent={false}
             />
             <SafeAreaView style={styles.safeArea}>
-            <Stack.Screen
-                options={{
-                    title: `Licencia ${habilitacion.nro_licencia}`,
-                    headerStyle: { backgroundColor: themeColors.background },
-                    headerTitleStyle: { color: themeColors.text, fontWeight: 'bold' },
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
-                            <ArrowLeftIcon color={themeColors.primary} />
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
+                <AppHeader user={user} onLogout={signOut} />
+                <Stack.Screen
+                    options={{
+                        title: `Licencia ${habilitacion.nro_licencia}`,
+                        headerStyle: { backgroundColor: colors.background },
+                        headerTitleStyle: { color: colors.text, fontWeight: 'bold' },
+                        headerShadowVisible: false,
+                        headerLeft: () => (
+                            <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
+                                <ArrowLeftIcon color={colors.primary} />
+                            </TouchableOpacity>
+                        ),
+                    }}
+                />
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.container}>
                     {inspection && (
                         <DetailCard title="Resultado de la Inspección">
-                            <View style={{alignItems: 'center'}}><InspectionStatusBadge inspection={inspection} themeColors={themeColors} /></View>
+                            <View style={{alignItems: 'center'}}><InspectionStatusBadge inspection={inspection} colors={colors} /></View>
                         </DetailCard>
                     )}
-                    <DetailCard title="Datos de la Habilitación" headerAccessory={<HabilitacionStatusBadge estado={habilitacion.estado} themeColors={themeColors} />}>
-                        <InfoRow label="N° de Licencia" value={habilitacion.nro_licencia} icon={<FileTextIcon color={themeColors.primary} />} />
-                        <InfoRow label="Tipo de Transporte" value={habilitacion.tipo_transporte} icon={<CarIcon color={themeColors.primary} />} />
-                        <InfoRow label="Vigencia" value={habilitacion.vigencia_fin} icon={<CalendarIcon color={themeColors.primary} />} />
+                    <DetailCard title="Datos de la Habilitación" headerAccessory={<HabilitacionStatusBadge estado={habilitacion.estado} colors={colors} />}>
+                        <InfoRow label="N° de Licencia" value={habilitacion.nro_licencia} icon={<FileTextIcon color={colors.primary} />} />
+                        <InfoRow label="Tipo de Transporte" value={habilitacion.tipo_transporte} icon={<CarIcon color={colors.primary} />} />
+                        <InfoRow label="Vigencia" value={habilitacion.vigencia_fin} icon={<CalendarIcon color={colors.primary} />} />
                     </DetailCard>
                     {titular && (
                         <DetailCard title="Datos del Titular">
-                            <InfoRow label="Nombre Completo" value={titular.nombre} icon={<UserIcon color={themeColors.primary} />} />
-                            <InfoRow label="Email" value={titular.email} icon={<UserIcon color={themeColors.primary} />} />
-                            <InfoRow label="Teléfono" value={titular.telefono} icon={<UserIcon color={themeColors.primary} />} />
+                            <InfoRow label="Nombre Completo" value={titular.nombre} icon={<UserIcon color={colors.primary} />} />
+                            <InfoRow label="Email" value={titular.email} icon={<UserIcon color={colors.primary} />} />
+                            <InfoRow label="Teléfono" value={titular.telefono} icon={<UserIcon color={colors.primary} />} />
                         </DetailCard>
                     )}
                     {vehiculo && (
                         <DetailCard title="Datos del Vehículo">
-                            <InfoRow label="Marca y Modelo" value={`${vehiculo.marca} ${vehiculo.modelo}`} icon={<CarIcon color={themeColors.primary} />} />
-                            <InfoRow label="Dominio" value={vehiculo.dominio} icon={<CarIcon color={themeColors.primary} />} />
+                            <InfoRow label="Marca y Modelo" value={`${vehiculo.marca} ${vehiculo.modelo}`} icon={<CarIcon color={colors.primary} />} />
+                            <InfoRow label="Dominio" value={vehiculo.dominio} icon={<CarIcon color={colors.primary} />} />
                         </DetailCard>
                     )}
                     {turno && (
                         <DetailCard title="Datos del Turno">
-                            <InfoRow label="Fecha y Hora" value={turnoInfo} icon={<CalendarIcon color={themeColors.primary} />} />
-                            <InfoRow label="Estado del Turno" value={turno.estado} icon={<CalendarIcon color={themeColors.primary} />} />
+                            <InfoRow label="Fecha y Hora" value={turnoInfo} icon={<CalendarIcon color={colors.primary} />} />
+                            <InfoRow label="Estado del Turno" value={turno.estado} icon={<CalendarIcon color={colors.primary} />} />
                         </DetailCard>
                     )}
                 </View>
