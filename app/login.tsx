@@ -16,6 +16,10 @@ import { QRScannerScreen } from '@/components/QRScanner/QRScannerScreen'; // Ase
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 
+// --- Componentes UX/UI Mejorados ---
+import { useToast } from '../src/components/ui/ToastNotification';
+import { LoadingSpinner } from '../src/components/ui/LoadingStates';
+
 // Define types for theme colors
 interface ThemeColors {
     primary: string;
@@ -182,6 +186,9 @@ const LoginScreen = () => {
     const [masterLoginCounter, setMasterLoginCounter] = useState<number>(0);
     const masterLoginThreshold = 5; // Reduced threshold for easier testing (was 10)
 
+    // --- Enhanced UX/UI State ---
+    const { showSuccess, showError } = useToast();
+
     const transitionAnim = useRef(new Animated.Value(0)).current;
     const logoAnim = useRef(new Animated.Value(0)).current;
     const titleAnim = useRef(new Animated.Value(0)).current;
@@ -205,7 +212,11 @@ const LoginScreen = () => {
     }, [error, signOut]);
 
     const handleManualLogin = (): void => {
-        if (!licencia.trim() || !dni.trim()) { Alert.alert("Campos incompletos", "Por favor, ingrese su DNI y N° de Licencia."); return; }
+        if (!licencia.trim() || !dni.trim()) { 
+            showError('Campos incompletos', 'Por favor, ingrese su DNI y N° de Licencia.');
+            return; 
+        }
+        showSuccess('Validando credenciales...', 'Verificando sus datos de acceso');
         signInWithManual(licencia, dni);
     };
 
@@ -250,19 +261,21 @@ const LoginScreen = () => {
         }
     };
 
-    const handleInternalLogin = async (): Promise<void> => {
+    const handleInternalLogin = (): void => {
         if (!identifier.trim() || !password.trim()) {
-            Alert.alert("Campos incompletos", "Por favor, ingrese su email/legajo y contraseña.");
+            showError('Campos incompletos', 'Por favor, ingrese su email/legajo y contraseña.');
             return;
         }
         
-        // Special handling for master login
+        // Check if this is a master login attempt
         if (isMasterLogin(identifier, password)) {
-            await handleMasterLogin();
-        } else {
-            // Regular login flow for non-master users
-            signInWithInternal(identifier, password);
+            showSuccess('Acceso Master detectado', 'Iniciando sesión como administrador');
+            handleMasterLogin();
+            return;
         }
+        
+        showSuccess('Validando credenciales...', 'Verificando acceso interno');
+        signInWithInternal(identifier, password);
     };
     
     const handleQRScan = (scannedData: string | null) => {
@@ -449,7 +462,7 @@ const changeView = (newView: ViewMode) => {
                     </View>
                     <View style={styles.manualFooter}>
                         <Pressable style={({ pressed }) => [styles.mainButton, pressed && styles.mainButtonPressed]} onPress={handleManualLogin} disabled={isLoading}>
-                            {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.mainButtonText}>Ingresar</Text>}
+                            {isLoading ? <LoadingSpinner size="small" color="#FFFFFF" /> : <Text style={styles.mainButtonText}>Ingresar</Text>}
                         </Pressable>
                     </View>
                 </View>
@@ -472,7 +485,7 @@ const changeView = (newView: ViewMode) => {
                     </View>
                     <View style={styles.manualFooter}>
                         <Pressable style={({ pressed }) => [styles.mainButton, pressed && styles.mainButtonPressed]} onPress={handleInternalLogin} disabled={isLoading}>
-                            {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.mainButtonText}>Iniciar Sesión</Text>}
+                            {isLoading ? <LoadingSpinner size="small" color="#FFFFFF" /> : <Text style={styles.mainButtonText}>Iniciar Sesión</Text>}
                         </Pressable>
                     </View>
                 </View>

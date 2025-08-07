@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
     LayoutAnimation,
     Platform,
-    Pressable,
+
     SafeAreaView,
     StatusBar,
     StyleSheet,
@@ -26,6 +26,11 @@ import { useTheme } from '../../src/hooks/useTheme';
 import AppHeader from '@/components/AppHeader';
 import * as api from '../../src/services/api';
 import { Habilitacion } from '../../src/types/habilitacion';
+
+// --- Componentes UX/UI Mejorados ---
+import { AnimatedView, AnimatedCard } from '../../src/components/ui/AnimatedComponents';
+import { CardSkeleton, EmptyState } from '../../src/components/ui/LoadingStates';
+import { useToast } from '../../src/components/ui/ToastNotification';
 
 
 
@@ -239,23 +244,30 @@ export default function AdminDashboard() {
     const styles = getStyles(colors);
     const [tipoTransporte, setTipoTransporte] = useState<'Escolar' | 'Remis'>('Escolar');
     const [searchQuery, setSearchQuery] = useState('');
+    const { showSuccess, showError } = useToast();
 
     const scrollY = useSharedValue(0);
 
     // --- Componentes internos con acceso a colors ---
-    const StatsCard = ({ icon, label, count, color }: {
+    const StatsCard = ({ icon, label, count, color, delay = 0 }: {
         icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
         label: string;
         count: number;
         color: string;
+        delay?: number;
     }) => (
-        <View style={styles.statsCard}>
+        <AnimatedView 
+            animationType="bounceScale" 
+            duration={600} 
+            delay={delay}
+            style={styles.statsCard}
+        >
             <View style={[styles.statsIconContainer, { backgroundColor: color }]}>
                 <MaterialCommunityIcons name={icon} size={24} color={'#FFFFFF'} />
             </View>
             <Text style={styles.statsCount}>{count}</Text>
             <Text style={styles.statsLabel}>{label}</Text>
-        </View>
+        </AnimatedView>
     );
 
     const HabilitacionesSummary = ({ data }: { data: Habilitacion[] | undefined }) => {
@@ -271,9 +283,9 @@ export default function AdminDashboard() {
 
         return (
             <View style={styles.summaryContainer}>
-                <StatsCard icon="check-circle-outline" label="Habilitados" count={summary.habilitado} color={colors.success} />
-                <StatsCard icon="clock-outline" label="En Trámite" count={summary.tramite} color={colors.warning} />
-                <StatsCard icon="close-circle-outline" label="Vencidos" count={summary.vencido} color={colors.error} />
+                <StatsCard icon="check-circle-outline" label="Habilitados" count={summary.habilitado} color={colors.success} delay={0} />
+                <StatsCard icon="clock-outline" label="En Trámite" count={summary.tramite} color={colors.warning} delay={150} />
+                <StatsCard icon="close-circle-outline" label="Vencidos" count={summary.vencido} color={colors.error} delay={300} />
             </View>
         );
     };
@@ -284,6 +296,7 @@ export default function AdminDashboard() {
 
         const handlePress = () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            showSuccess('Navegando a detalles', 'Cargando información de la habilitación...');
             router.push({
                 pathname: `/(admin)/${item.habilitacion_id}` as any,
                 params: { item: JSON.stringify(item) }
@@ -291,7 +304,7 @@ export default function AdminDashboard() {
         };
 
         return (
-            <Pressable onPress={handlePress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+            <AnimatedCard onPress={handlePress} style={styles.card}>
                 <View style={[styles.cardBorder, { backgroundColor: status.color }]} />
                 <View style={styles.cardContent}>
                     <View style={styles.cardIconType}>
@@ -309,7 +322,7 @@ export default function AdminDashboard() {
                         <Text style={[styles.statusText, { color: status.color }]}>{item.estado}</Text>
                     </View>
                 </View>
-            </Pressable>
+            </AnimatedCard>
         );
     };
 
@@ -330,36 +343,25 @@ export default function AdminDashboard() {
         );
     };
 
-    const SkeletonRow = () => {
-        return (
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-                 <View style={[styles.cardBorder, { backgroundColor: colors.border }]} />
-                <View style={styles.cardContent}>
-                    <View style={styles.cardTextContainer}>
-                        <View style={[styles.skeleton, { width: '50%', height: 20, marginBottom: 8 }]} />
-                        <View style={[styles.skeleton, { width: '80%', height: 16 }]} />
-                    </View>
-                    <View style={[styles.skeleton, { width: 90, height: 28, borderRadius: 14 }]} />
-                </View>
-            </View>
-        );
-    };
-
     const SkeletonLoader = () => (
         <View style={{ gap: 16 }}>
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
+            <CardSkeleton showAvatar={true} lines={2} />
+            <CardSkeleton showAvatar={true} lines={2} />
+            <CardSkeleton showAvatar={true} lines={2} />
         </View>
     );
 
     const EmptyListComponent = () => {
         return (
-            <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons name="folder-search-outline" size={64} color={colors.textSecondary} />
-                <Text style={styles.emptyText}>No se encontraron habilitaciones</Text>
-                <Text style={[styles.emptyText, { fontSize: 14, marginTop: 4 }]}>Intenta ajustar tu búsqueda o los filtros.</Text>
-            </View>
+            <EmptyState
+                title="No se encontraron habilitaciones"
+                message="Intenta ajustar tu búsqueda o los filtros para encontrar más resultados."
+                actionLabel="Limpiar filtros"
+                onActionPress={() => {
+                    setSearchQuery('');
+                    showSuccess('Filtros limpiados', 'Mostrando todas las habilitaciones');
+                }}
+            />
         );
     };
 
@@ -388,6 +390,7 @@ export default function AdminDashboard() {
     };
 
     if (error) {
+        showError('Error de conexión', 'No se pudieron cargar las habilitaciones. Verifica tu conexión a internet.');
         return (
             <View style={androidContainerStyle}>
                 <StatusBar 
@@ -396,7 +399,12 @@ export default function AdminDashboard() {
                     translucent={false}
                 />
                 <SafeAreaView style={styles.centerContainer}>
-                    <Text style={styles.errorText}>Error al cargar los datos.</Text>
+                    <EmptyState
+                        title="Error al cargar datos"
+                        message="No se pudieron cargar las habilitaciones. Verifica tu conexión a internet."
+                        actionLabel="Reintentar"
+                        onActionPress={() => window.location.reload()}
+                    />
                 </SafeAreaView>
             </View>
         );
